@@ -61,43 +61,7 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
       {/* MAIN CONTENT */}
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-10">
         
-        {/* TRUST STRIP */}
-        <section className="flex overflow-x-auto md:grid md:grid-cols-3 gap-4 pb-2 md:pb-0 no-scrollbar snap-x snap-mandatory scroll-smooth">
-          {/* Instant: Orange Theme */}
-          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
-            <div className="w-[40px] h-[40px] shrink-0 bg-accent-orange border-2 border-accent-orange text-black flex items-center justify-center font-black">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
-            </div>
-            <div>
-              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">Pengiriman Instant</h4>
-              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">Diamond masuk cepat</span>
-            </div>
-          </div>
-
-          {/* Secure: Yellow Theme */}
-          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-accent hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
-            <div className="w-[40px] h-[40px] shrink-0 bg-accent border-2 border-accent text-black flex items-center justify-center font-black">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
-            </div>
-            <div>
-              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">Pembayaran Aman</h4>
-              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">QRIS, e-wallet &amp; VA</span>
-            </div>
-          </div>
-
-          {/* Support: Purple Theme */}
-          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-purple hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
-            <div className="w-[40px] h-[40px] shrink-0 bg-accent-purple border-2 border-accent-purple text-black flex items-center justify-center font-black">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-            </div>
-            <div>
-              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">CS Siap 24/7</h4>
-              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">Support ramah &amp; cepat</span>
-            </div>
-          </div>
-        </section>
-
-        {/* FLASH SALE */}
+        {/* 1. FLASH SALE */}
         {initialFlashSales && initialFlashSales.length > 0 && (
           <section id="flash-sale" className="space-y-5">
             <div className="flex items-center justify-between gap-3.5 flex-wrap">
@@ -147,42 +111,7 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
           </section>
         )}
 
-        {/* LEADERBOARD */}
-        {initialTopSpenders && initialTopSpenders.length > 0 && (
-          <section id="leaderboard" className="space-y-5 pt-2">
-            <div className="flex items-center gap-2.5 font-black text-lg md:text-xl text-white uppercase tracking-wider">
-              <span className="w-[32px] h-[32px] border-2 border-accent bg-accent flex items-center justify-center text-black shadow-neo-sm">
-                <FaTrophy className="w-4.5 h-4.5" />
-              </span>
-              Top Spender Bulan Ini
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {initialTopSpenders.slice(0, 3).map((user, index) => {
-                const isFirst = index === 0;
-                return (
-                  <div key={index} className={`flex items-center gap-4 bg-black border-2 ${isFirst ? 'border-accent shadow-neo-accent' : 'border-white shadow-neo'} p-4 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none relative overflow-hidden group`}>
-                    {isFirst && (
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-accent transform rotate-45 translate-x-8 -translate-y-8 flex items-end justify-center pb-2">
-                        <FaCrown className="text-black w-4 h-4 -rotate-45" />
-                      </div>
-                    )}
-                    <div className={`w-[45px] h-[45px] shrink-0 border-2 flex items-center justify-center font-black text-lg ${isFirst ? 'bg-accent border-accent text-black' : 'bg-black border-white text-white'}`}>
-                      #{index + 1}
-                    </div>
-                    <div>
-                      <h4 className="font-black text-sm text-white tracking-widest">{maskWaNumber(user.wa_number)}</h4>
-                      <div className="text-xs font-bold text-white/50 uppercase mt-0.5">{user.total_orders} Pesanan</div>
-                      <div className="text-sm font-mono font-black text-accent-green mt-1">Rp {Number(user.total_spent).toLocaleString("id-ID")}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* GAME SELECTION */}
+        {/* 2. GAME SELECTION */}
         <section id="games" className="space-y-6 pt-2">
           {/* Section head */}
           <div className="flex justify-between items-end gap-4">
@@ -229,6 +158,77 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
               Game tidak ditemukan.
             </div>
           )}
+        </section>
+
+        {/* 3. LEADERBOARD */}
+        {initialTopSpenders && initialTopSpenders.length > 0 && (
+          <section id="leaderboard" className="space-y-5 pt-2">
+            <div className="flex items-center gap-2.5 font-black text-lg md:text-xl text-white uppercase tracking-wider">
+              <span className="w-[32px] h-[32px] border-2 border-accent bg-accent flex items-center justify-center text-black shadow-neo-sm">
+                <FaTrophy className="w-4.5 h-4.5" />
+              </span>
+              Top Spender Bulan Ini
+            </div>
+            
+            <div className="grid grid-flow-col auto-cols-[85%] md:auto-cols-auto md:grid-cols-3 gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth no-scrollbar">
+              {initialTopSpenders.slice(0, 3).map((user, index) => {
+                const isFirst = index === 0;
+                return (
+                  <div key={index} className={`flex items-center gap-4 bg-black border-2 ${isFirst ? 'border-accent shadow-neo-accent' : 'border-white shadow-neo'} p-4 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none relative overflow-hidden group snap-align-start shrink-0`}>
+                    {isFirst && (
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-accent transform rotate-45 translate-x-8 -translate-y-8 flex items-end justify-center pb-2">
+                        <FaCrown className="text-black w-4 h-4 -rotate-45" />
+                      </div>
+                    )}
+                    <div className={`w-[45px] h-[45px] shrink-0 border-2 flex items-center justify-center font-black text-lg ${isFirst ? 'bg-accent border-accent text-black' : 'bg-black border-white text-white'}`}>
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-white tracking-widest">{maskWaNumber(user.wa_number)}</h4>
+                      <div className="text-xs font-bold text-white/50 uppercase mt-0.5">{user.total_orders} Pesanan</div>
+                      <div className="text-sm font-mono font-black text-accent-green mt-1">Rp {Number(user.total_spent).toLocaleString("id-ID")}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* 4. TRUST STRIP */}
+        <section className="flex overflow-x-auto md:grid md:grid-cols-3 gap-4 pb-2 md:pb-0 no-scrollbar snap-x snap-mandatory scroll-smooth pt-4 border-t-2 border-white/20 border-dashed">
+          {/* Instant: Orange Theme */}
+          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
+            <div className="w-[40px] h-[40px] shrink-0 bg-accent-orange border-2 border-accent-orange text-black flex items-center justify-center font-black">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+            </div>
+            <div>
+              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">Pengiriman Instant</h4>
+              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">Diamond masuk cepat</span>
+            </div>
+          </div>
+
+          {/* Secure: Yellow Theme */}
+          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-accent hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
+            <div className="w-[40px] h-[40px] shrink-0 bg-accent border-2 border-accent text-black flex items-center justify-center font-black">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+            </div>
+            <div>
+              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">Pembayaran Aman</h4>
+              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">QRIS, e-wallet &amp; VA</span>
+            </div>
+          </div>
+
+          {/* Support: Purple Theme */}
+          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-purple hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
+            <div className="w-[40px] h-[40px] shrink-0 bg-accent-purple border-2 border-accent-purple text-black flex items-center justify-center font-black">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            </div>
+            <div>
+              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">CS Siap 24/7</h4>
+              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">Support ramah &amp; cepat</span>
+            </div>
+          </div>
         </section>
       </main>
 
