@@ -32,6 +32,14 @@ export default async function Home() {
     console.error("Error fetching flash sales:", fsError);
   }
 
+  // Fetch Leaderboard (Top Spenders)
+  const { data: topSpenders, error: tsError } = await supabaseServer
+    .rpc('get_top_spenders', { limit_count: 5 });
+
+  if (tsError) {
+    console.error("Error fetching top spenders:", tsError);
+  }
+
   // Pass to client component to handle search state and UI
-  return <HomeClient initialGames={games || []} initialFlashSales={flashSales || []} />;
+  return <HomeClient initialGames={games || []} initialFlashSales={flashSales || []} initialTopSpenders={topSpenders || []} />;
 }

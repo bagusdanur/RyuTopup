@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { sendEmail, generateSuccessEmailHtml } from "@/lib/sendEmail";
 
 export async function POST(request: Request) {
   try {
@@ -32,6 +33,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Status unchanged" });
     }
 
+    // Fetch existing transaction to get email and item_name
+    const { data: trx } = await supabaseServer
+      .from("topup_transactions")
+      .select("email, item_name")
+      .eq("id", order_id)
+      .single();
+
     // Update transaction in database
     const { error } = await supabaseServer
       .from("topup_transactions")
@@ -46,6 +54,16 @@ export async function POST(request: Request) {
     if (error) {
       console.error("Webhook DB Update Error:", error);
       return NextResponse.json({ error: "Failed to update database" }, { status: 500 });
+    }
+
+    // --- SEND SUCCESS EMAIL ---
+    if (localStatus === "success" && trx?.email && trx.email.trim() !== "") {
+      const emailHtml = generateSuccessEmailHtml(order_id, trx.item_name || "Produk Game");
+      sendEmail({
+        to: trx.email.trim(),
+        subject: `Pembayaran Berhasil #${order_id} - RyuTopup`,
+        html: emailHtml,
+      }).catch((e) => console.error("Failed to send success email:", e));
     }
 
     return NextResponse.json({ success: true, message: `Order ${order_id} updated to ${localStatus}` });

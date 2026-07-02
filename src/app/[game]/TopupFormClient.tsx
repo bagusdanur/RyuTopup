@@ -137,6 +137,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const [activePayment, setActivePayment] = useState<string | null>("qris");
   const [accountData, setAccountData] = useState<Record<string, string>>({});
   const [waNumber, setWaNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [voucherCode, setVoucherCode] = useState("");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -215,6 +216,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       setWaError("Format nomor WhatsApp tidak valid (contoh: 081234567890)");
       hasError = true;
     }
+    
+    // Email validation
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setCheckoutError("Format email tidak valid");
+      hasError = true;
+    }
 
     // Input values validation (only numbers for numeric fields)
     const numericRegex = /^\d+$/;
@@ -276,6 +283,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
         },
         body: JSON.stringify({
           waNumber: cleanWa,
+          email: email.trim() || undefined,
           gameId,
           targetId: formattedTargetId,
           itemCode: selectedItem.id,
@@ -430,6 +438,21 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
               {waError && (
                 <span className="text-[10px] text-rose-400 font-extrabold uppercase tracking-wide">{waError}</span>
               )}
+            </div>
+
+            {/* Global Email Field */}
+            <div className="flex flex-col gap-2 pt-2">
+              <label htmlFor="email" className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">
+                Alamat Email <span className="text-white/50 normal-case text-[10px]">(opsional)</span>
+              </label>
+              <input
+                id="email"
+                type="email"
+                placeholder="nama@email.com (Untuk Invoice)"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setCheckoutError(null); }}
+                className="bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none placeholder-white/40 focus:shadow-neo transition-all w-full rounded-none"
+              />
             </div>
           </div>
 

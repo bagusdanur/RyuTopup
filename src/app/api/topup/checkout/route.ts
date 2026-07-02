@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { sendEmail, generateInvoiceEmailHtml } from "@/lib/sendEmail";
 
 // Generate unique invoice ID in the format: RTP-YYYYMMDD-XXXXX
 function generateInvoiceId(): string {
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       waNumber,
+      email,
       gameId,
       targetId,
       itemCode,
@@ -119,6 +121,7 @@ export async function POST(request: Request) {
       .insert({
         id: invoiceId,
         wa_number: waNumber.trim(),
+        email: email ? email.trim() : null,
         game_id: gameId.trim(),
         target_id: targetId.trim(),
         item_name: itemName.trim(),
@@ -142,6 +145,17 @@ export async function POST(request: Request) {
         { error: `Gagal memproses transaksi di database: ${error.message}` },
         { status: 500 }
       );
+    }
+
+    // --- SEND INVOICE EMAIL ---
+    if (email && email.trim() !== "") {
+      const emailHtml = generateInvoiceEmailHtml(invoiceId, itemName, priceTotal);
+      // Fire and forget (don't await) so it doesn't slow down checkout
+      sendEmail({
+        to: email.trim(),
+        subject: `Tagihan Pembayaran #${invoiceId} - RyuTopup`,
+        html: emailHtml,
+      }).catch((e) => console.error("Failed to send invoice email:", e));
     }
 
     return NextResponse.json({

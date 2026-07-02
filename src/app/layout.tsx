@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Preloader from "@/components/Preloader";
+import SocialProof from "@/components/SocialProof";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,9 @@ export const metadata: Metadata = {
     description: "Top up diamond, UC, dan voucher game favoritmu dengan harga paling miring dan proses secepat kilat.",
     images: ["https://ryutopup.com/og-image.jpg"],
   },
+  icons: {
+    icon: "/icon-ryutopup.png",
+  },
 };
 
 export default function RootLayout({
@@ -58,6 +62,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Preloader />
+        <SocialProof />
         {children}
       </body>
     </html>

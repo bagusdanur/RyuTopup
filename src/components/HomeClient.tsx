@@ -5,14 +5,29 @@ import Link from "next/link";
 import TopupHeader from "@/components/TopupHeader";
 import TopupFooter from "@/components/TopupFooter";
 
-export default function HomeClient({ initialGames, initialFlashSales }: { initialGames: any[], initialFlashSales: any[] }) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [timeLeft, setTimeLeft] = useState(3 * 3600 + 24 * 60 + 9); // 3h 24m 9s
+import { FaGamepad, FaCrown, FaTrophy } from "react-icons/fa";
 
-  // Flash sale countdown timer
+export default function HomeClient({ initialGames, initialFlashSales, initialTopSpenders = [] }: { initialGames: any[], initialFlashSales: any[], initialTopSpenders?: any[] }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const getSecondsUntilMidnight = () => {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    return Math.floor((midnight.getTime() - now.getTime()) / 1000);
+  };
+
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  // Flash sale countdown timer (resets every midnight)
   useEffect(() => {
+    // Set initial time
+    setTimeLeft(getSecondsUntilMidnight());
+    
     const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev <= 0 ? 3 * 3600 : prev - 1));
+      setTimeLeft((prev) => {
+        if (prev <= 0) return getSecondsUntilMidnight();
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -28,6 +43,14 @@ export default function HomeClient({ initialGames, initialFlashSales }: { initia
   const filteredGames = initialGames.filter((game) =>
     game.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Mask WA number (e.g., 081234xxxx56)
+  const maskWaNumber = (wa: string) => {
+    if (!wa || wa.length < 8) return wa;
+    const start = wa.substring(0, 4);
+    const end = wa.substring(wa.length - 2);
+    return `${start}****${end}`;
+  };
 
   return (
     <div className="bg-black text-white font-sans min-h-screen flex flex-col antialiased">
@@ -119,6 +142,41 @@ export default function HomeClient({ initialGames, initialFlashSales }: { initia
                   </div>
                 </Link>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* LEADERBOARD */}
+        {initialTopSpenders && initialTopSpenders.length > 0 && (
+          <section id="leaderboard" className="space-y-5 pt-2">
+            <div className="flex items-center gap-2.5 font-black text-lg md:text-xl text-white uppercase tracking-wider">
+              <span className="w-[32px] h-[32px] border-2 border-accent bg-accent flex items-center justify-center text-black shadow-neo-sm">
+                <FaTrophy className="w-4.5 h-4.5" />
+              </span>
+              Top Spender Bulan Ini
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {initialTopSpenders.map((user, index) => {
+                const isFirst = index === 0;
+                return (
+                  <div key={index} className={`flex items-center gap-4 bg-black border-2 ${isFirst ? 'border-accent-yellow shadow-neo-accent' : 'border-white shadow-neo'} p-4 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none relative overflow-hidden group`}>
+                    {isFirst && (
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-accent-yellow transform rotate-45 translate-x-8 -translate-y-8 flex items-end justify-center pb-2">
+                        <FaCrown className="text-black w-4 h-4 -rotate-45" />
+                      </div>
+                    )}
+                    <div className={`w-[45px] h-[45px] shrink-0 border-2 flex items-center justify-center font-black text-lg ${isFirst ? 'bg-accent-yellow border-accent-yellow text-black' : 'bg-black border-white text-white'}`}>
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-white tracking-widest">{maskWaNumber(user.wa_number)}</h4>
+                      <div className="text-xs font-bold text-white/50 uppercase mt-0.5">{user.total_orders} Pesanan</div>
+                      <div className="text-sm font-mono font-black text-accent-green mt-1">Rp {Number(user.total_spent).toLocaleString("id-ID")}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
