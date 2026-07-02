@@ -1,0 +1,37 @@
+import { supabaseServer } from "@/lib/supabaseServer";
+import HomeClient from "@/components/HomeClient";
+
+// Ensure this page is dynamically rendered so it picks up the latest Supabase data
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  // Fetch active games from Supabase
+  const { data: games, error } = await supabaseServer
+    .from("games")
+    .select("*")
+    .eq("is_active", true);
+
+  if (error) {
+    console.error("Error fetching games:", error);
+  }
+
+  // Fetch Flash Sales
+  const { data: flashSales, error: fsError } = await supabaseServer
+    .from("products")
+    .select(`
+      *,
+      games (
+        name,
+        slug
+      )
+    `)
+    .eq("is_flash_sale", true)
+    .eq("is_active", true);
+
+  if (fsError) {
+    console.error("Error fetching flash sales:", fsError);
+  }
+
+  // Pass to client component to handle search state and UI
+  return <HomeClient initialGames={games || []} initialFlashSales={flashSales || []} />;
+}

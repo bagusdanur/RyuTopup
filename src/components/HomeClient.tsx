@@ -1,0 +1,180 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import TopupHeader from "@/components/TopupHeader";
+import TopupFooter from "@/components/TopupFooter";
+
+export default function HomeClient({ initialGames, initialFlashSales }: { initialGames: any[], initialFlashSales: any[] }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [timeLeft, setTimeLeft] = useState(3 * 3600 + 24 * 60 + 9); // 3h 24m 9s
+
+  // Flash sale countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev <= 0 ? 3 * 3600 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatCountdown = (seconds: number) => {
+    const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
+    const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+    const s = String(seconds % 60).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  };
+
+  // Filter games based on search query
+  const filteredGames = initialGames.filter((game) =>
+    game.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="bg-black text-white font-sans min-h-screen flex flex-col antialiased">
+      {/* HEADER */}
+      <TopupHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-10">
+        
+        {/* TRUST STRIP */}
+        <section className="flex overflow-x-auto md:grid md:grid-cols-3 gap-4 pb-2 md:pb-0 no-scrollbar snap-x snap-mandatory scroll-smooth">
+          {/* Instant: Orange Theme */}
+          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
+            <div className="w-[40px] h-[40px] shrink-0 bg-accent-orange border-2 border-accent-orange text-black flex items-center justify-center font-black">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+            </div>
+            <div>
+              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">Pengiriman Instant</h4>
+              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">Diamond masuk cepat</span>
+            </div>
+          </div>
+
+          {/* Secure: Yellow Theme */}
+          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-accent hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
+            <div className="w-[40px] h-[40px] shrink-0 bg-accent border-2 border-accent text-black flex items-center justify-center font-black">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+            </div>
+            <div>
+              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">Pembayaran Aman</h4>
+              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">QRIS, e-wallet &amp; VA</span>
+            </div>
+          </div>
+
+          {/* Support: Purple Theme */}
+          <div className="flex items-center gap-3.5 bg-black border-2 border-white p-4 shrink-0 w-[250px] md:w-auto snap-align-start shadow-neo-purple hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none">
+            <div className="w-[40px] h-[40px] shrink-0 bg-accent-purple border-2 border-accent-purple text-black flex items-center justify-center font-black">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-[18px] h-[18px]"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            </div>
+            <div>
+              <h4 className="font-black text-[13.5px] text-white block uppercase tracking-wide">CS Siap 24/7</h4>
+              <span className="text-[11.5px] text-white/70 block leading-tight font-bold">Support ramah &amp; cepat</span>
+            </div>
+          </div>
+        </section>
+
+        {/* FLASH SALE */}
+        {initialFlashSales && initialFlashSales.length > 0 && (
+          <section id="flash-sale" className="space-y-5">
+            <div className="flex items-center justify-between gap-3.5 flex-wrap">
+              <div className="flex items-center gap-2.5 font-black text-lg md:text-xl text-white uppercase tracking-wider">
+                <span className="w-[32px] h-[32px] border-2 border-accent-orange bg-accent-orange flex items-center justify-center text-black shadow-neo-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="w-4.5 h-4.5"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+                </span>
+                Flash Sale — Penawaran Terbatas!
+              </div>
+              <div className="flex items-center gap-2 bg-black border-2 border-white px-3.5 py-1.5 text-xs text-white font-black uppercase tracking-wider">
+                Berakhir dalam <span className="bg-accent-orange border border-accent-orange px-2 py-0.5 text-black font-mono font-black tabular-nums ml-1.5 shadow-neo-sm">{formatCountdown(timeLeft)}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-flow-col auto-cols-[230px] gap-4 overflow-x-auto pb-2 scroll-smooth no-scrollbar">
+              {initialFlashSales.map((fs) => (
+                <Link key={fs.id} className="relative bg-black border-2 border-white p-4 flex flex-col gap-2.5 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-neo transition-all duration-200 w-[230px] shrink-0 scroll-snap-align-start rounded-none group" href={`/${fs.games.slug}`}>
+                  {fs.discount && (
+                    <span className="absolute top-3.5 right-3.5 bg-accent-red text-white border-2 border-accent-red text-[11px] font-black px-2.5 py-0.5 select-none uppercase shadow-neo-sm">
+                      {fs.discount} OFF
+                    </span>
+                  )}
+                  <span className="text-[10.5px] font-black tracking-wider uppercase text-white/70">{fs.games.name}</span>
+                  
+                  <div className="flex items-center gap-2.5">
+                    {fs.icon ? (
+                      fs.icon.startsWith("http") ? (
+                        <img src={fs.icon} alt={fs.name} className="w-10 h-10 border-2 border-white object-cover bg-black rounded-none" />
+                      ) : (
+                        <div className="w-10 h-10 border-2 border-white bg-black flex items-center justify-center text-xl">{fs.icon}</div>
+                      )
+                    ) : null}
+                    <div className="text-[13px] font-black leading-[1.3] text-white uppercase group-hover:underline">
+                      {fs.name}
+                    </div>
+                  </div>
+                  
+                  <div className="text-[14.5px] font-black text-accent-yellow mt-auto flex items-center">
+                    {fs.original_price > fs.price && (
+                      <span className="text-[11.5px] text-white/50 line-through font-bold mr-1.5 font-mono">Rp {fs.original_price.toLocaleString("id-ID")}</span>
+                    )}
+                    <span className="font-mono">Rp {fs.price.toLocaleString("id-ID")}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* GAME SELECTION */}
+        <section id="games" className="space-y-6 pt-2">
+          {/* Section head */}
+          <div className="flex justify-between items-end gap-4">
+            <div>
+              <span className="text-[11px] font-black tracking-[0.12em] uppercase text-white/70 flex items-center gap-1.5 mb-1.5">
+                Pilih Game
+              </span>
+              <h2 className="text-2xl font-black text-white leading-tight uppercase tracking-wide">Top Up Game</h2>
+            </div>
+            <Link href="/game" className="text-[13px] font-black text-black bg-accent border-2 border-accent shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none px-4 py-2 transition-all uppercase tracking-wide rounded-none">
+              Lihat Semua Game →
+            </Link>
+          </div>
+
+          {/* Game Grid */}
+          {filteredGames.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+              {filteredGames.map((game) => (
+                <Link
+                  key={game.slug}
+                  href={`/${game.slug}`}
+                  className="bg-black border-2 border-white overflow-hidden flex flex-col hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-neo transition-all duration-300 group rounded-none"
+                >
+                  <div className="w-full aspect-[3/4] relative overflow-hidden bg-black border-b-2 border-white">
+                    <img
+                      src={game.cover || game.logo}
+                      alt={game.name}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-3.5 flex flex-col justify-between flex-grow bg-black">
+                    <div className="font-black text-[13px] text-white leading-tight truncate w-full group-hover:underline transition-colors uppercase">
+                      {game.name}
+                    </div>
+                    <div className="text-[11px] text-white/60 mt-1.5 truncate w-full font-bold">
+                      {game.developer || "Developer"}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-black border-2 border-dashed border-white rounded-none text-white/70 font-bold">
+              Game tidak ditemukan.
+            </div>
+          )}
+        </section>
+      </main>
+
+      {/* FOOTER */}
+      <TopupFooter />
+    </div>
+  );
+}
