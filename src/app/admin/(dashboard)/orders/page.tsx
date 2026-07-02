@@ -1,6 +1,8 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import { FiCheck, FiX, FiClock, FiRefreshCw } from "react-icons/fi";
 
+export const dynamic = "force-dynamic";
+
 // This is a Server Component. It fetches data directly from Supabase securely.
 export default async function AdminOrdersPage() {
   // Fetch transactions from the existing topup_transactions table

@@ -4,12 +4,15 @@ import { supabaseServer } from "@/lib/supabaseServer";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("=========== WEBHOOK MASUK ===========");
+    console.log(JSON.stringify(body, null, 2));
     
     // Generic destructuring to accommodate various PG payloads
     // Example Pakasir payload: { order_id: "...", status: "completed", amount: 22000, ... }
     const { order_id, status } = body;
 
     if (!order_id || !status) {
+      console.log("WEBHOOK GAGAL: order_id atau status tidak ditemukan di payload");
       return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
     }
 

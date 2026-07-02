@@ -2,6 +2,8 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { FiTrendingUp, FiShoppingBag, FiDollarSign, FiClock, FiArrowRight } from "react-icons/fi";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardOverview() {
   // Fetch real data from topup_transactions
   const { data: orders, error } = await supabaseServer
