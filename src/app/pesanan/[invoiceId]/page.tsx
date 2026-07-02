@@ -21,6 +21,8 @@ interface TrackedOrder {
   priceBase?: number;
   priceFee?: number;
   priceTotal?: number;
+  promoCode?: string;
+  discountAmount?: number;
   createdAt?: string;
   date: string;
   status: "pending" | "processing" | "success" | "failed";
