@@ -158,16 +158,16 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {initialTopSpenders.map((user, index) => {
+              {initialTopSpenders.slice(0, 3).map((user, index) => {
                 const isFirst = index === 0;
                 return (
-                  <div key={index} className={`flex items-center gap-4 bg-black border-2 ${isFirst ? 'border-accent-yellow shadow-neo-accent' : 'border-white shadow-neo'} p-4 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none relative overflow-hidden group`}>
+                  <div key={index} className={`flex items-center gap-4 bg-black border-2 ${isFirst ? 'border-accent shadow-neo-accent' : 'border-white shadow-neo'} p-4 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all rounded-none relative overflow-hidden group`}>
                     {isFirst && (
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-accent-yellow transform rotate-45 translate-x-8 -translate-y-8 flex items-end justify-center pb-2">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-accent transform rotate-45 translate-x-8 -translate-y-8 flex items-end justify-center pb-2">
                         <FaCrown className="text-black w-4 h-4 -rotate-45" />
                       </div>
                     )}
-                    <div className={`w-[45px] h-[45px] shrink-0 border-2 flex items-center justify-center font-black text-lg ${isFirst ? 'bg-accent-yellow border-accent-yellow text-black' : 'bg-black border-white text-white'}`}>
+                    <div className={`w-[45px] h-[45px] shrink-0 border-2 flex items-center justify-center font-black text-lg ${isFirst ? 'bg-accent border-accent text-black' : 'bg-black border-white text-white'}`}>
                       #{index + 1}
                     </div>
                     <div>
