@@ -77,9 +77,10 @@ CREATE TABLE public.promo_codes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     code TEXT UNIQUE NOT NULL,
     discount_amount BIGINT, -- e.g., 5000 (flat Rp 5.000)
-    discount_percentage INTEGER, -- e.g., 10 (10%)
-    max_discount BIGINT, -- max discount if using percentage
-    quota INTEGER, -- e.g. 50 usage limit. If null, unlimited
+    discount_percentage INTEGER, -- null jika tipe nominal
+    max_discount BIGINT, -- maksimal diskon untuk persentase
+    min_purchase BIGINT, -- batas minimal belanja (opsional)
+    quota INTEGER, -- null jika unlimited
     used INTEGER DEFAULT 0,
     expires_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT true,

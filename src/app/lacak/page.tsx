@@ -27,6 +27,9 @@ interface TrackedOrder {
   targetId: string;
   paymentMethod: string;
   price: string;
+  priceBase?: number;
+  promoCode?: string;
+  discountAmount?: number;
   date: string;
   status: "pending" | "processing" | "success" | "failed";
 }
@@ -316,6 +319,13 @@ export default function LacakPesananPage() {
 
             {/* Line Items Pricing */}
             <div className="space-y-2 text-xs font-bold pt-1">
+              {searchedOrder.discountAmount ? (
+                <div className="flex justify-between items-start gap-4 text-white/70">
+                  <span className="uppercase tracking-wide">Harga Asli</span>
+                  <span className="shrink-0 font-mono">Rp {searchedOrder.priceBase?.toLocaleString('id-ID')}</span>
+                </div>
+              ) : null}
+
               <div className="flex justify-between items-start gap-4 text-white">
                 <div className="flex items-center gap-2">
                   {itemIcon && (
@@ -331,6 +341,13 @@ export default function LacakPesananPage() {
                 </div>
                 <span className="shrink-0 font-mono">{searchedOrder.price}</span>
               </div>
+              
+              {searchedOrder.promoCode && searchedOrder.discountAmount ? (
+                <div className="flex justify-between items-start gap-4 text-accent-green mt-1">
+                  <span className="uppercase tracking-wide">Diskon Promo ({searchedOrder.promoCode})</span>
+                  <span className="shrink-0 font-mono">- Rp {searchedOrder.discountAmount.toLocaleString('id-ID')}</span>
+                </div>
+              ) : null}
             </div>
 
 

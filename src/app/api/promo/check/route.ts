@@ -35,6 +35,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Kode Promo ini sudah kadaluarsa." }, { status: 400 });
     }
 
+    // 2b. Check Min Purchase
+    if (promo.min_purchase && originalPrice < Number(promo.min_purchase)) {
+      return NextResponse.json({ success: false, error: `Minimal belanja untuk promo ini adalah Rp ${Number(promo.min_purchase).toLocaleString("id-ID")}` }, { status: 400 });
+    }
+
     // 3. Check Quota
     if (promo.quota !== null && promo.used >= promo.quota) {
       return NextResponse.json({ success: false, error: "Kuota Kode Promo ini sudah habis digunakan." }, { status: 400 });

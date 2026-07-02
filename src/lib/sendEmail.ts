@@ -32,7 +32,17 @@ export async function sendEmail({
   }
 }
 
-export function generateInvoiceEmailHtml(invoiceId: string, itemName: string, total: number) {
+export function generateInvoiceEmailHtml(
+  invoiceId: string, 
+  itemName: string, 
+  total: number, 
+  promoCode?: string | null, 
+  discountAmount?: number | null
+) {
+  const promoHtml = promoCode && discountAmount 
+    ? `<p style="margin: 5px 0; color: #00ffcc;"><strong>Diskon Promo (${promoCode}):</strong> - Rp ${discountAmount.toLocaleString("id-ID")}</p>`
+    : "";
+
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #111; color: #fff; border: 2px solid #fff; padding: 20px;">
       <h1 style="color: #00ffcc; text-transform: uppercase; margin-top: 0;">Tagihan Baru - RyuTopup</h1>
@@ -41,6 +51,7 @@ export function generateInvoiceEmailHtml(invoiceId: string, itemName: string, to
       <div style="background-color: #222; padding: 15px; border: 1px solid #fff; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Nomor Pesanan:</strong> ${invoiceId}</p>
         <p style="margin: 5px 0;"><strong>Produk:</strong> ${itemName}</p>
+        ${promoHtml}
         <p style="margin: 5px 0; color: #00ffcc; font-weight: bold; font-size: 18px;"><strong>Total Tagihan:</strong> Rp ${total.toLocaleString("id-ID")}</p>
       </div>
       <p>Silakan lakukan pembayaran agar pesanan Anda dapat segera kami proses.</p>

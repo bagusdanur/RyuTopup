@@ -8,6 +8,7 @@ export async function createPromoCode(data: {
   discount_amount?: number;
   discount_percentage?: number;
   max_discount?: number;
+  min_purchase?: number;
   quota?: number;
 }) {
   const upperCode = data.code.trim().toUpperCase();
@@ -25,6 +26,7 @@ export async function createPromoCode(data: {
       discount_amount: data.discount_amount || null,
       discount_percentage: data.discount_percentage || null,
       max_discount: data.max_discount || null,
+      min_purchase: data.min_purchase || null,
       quota: data.quota || null,
       is_active: true
     });

@@ -82,6 +82,7 @@ export function PromoCreateForm() {
     const amount = formData.get("discount_amount") as string;
     const percent = formData.get("discount_percentage") as string;
     const maxDesc = formData.get("max_discount") as string;
+    const minPurchase = formData.get("min_purchase") as string;
     const quota = formData.get("quota") as string;
 
     startTransition(async () => {
@@ -91,6 +92,7 @@ export function PromoCreateForm() {
           discount_amount: discountType === "nominal" && amount ? parseInt(amount) : undefined,
           discount_percentage: discountType === "persen" && percent ? parseInt(percent) : undefined,
           max_discount: discountType === "persen" && maxDesc ? parseInt(maxDesc) : undefined,
+          min_purchase: minPurchase ? parseInt(minPurchase) : undefined,
           quota: quota ? parseInt(quota) : undefined,
         });
         setIsOpen(false);
@@ -194,15 +196,28 @@ export function PromoCreateForm() {
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-black text-white uppercase tracking-wider">Kuota Penggunaan</label>
-          <input 
-            type="number" 
-            name="quota" 
-            min="1"
-            className="w-full bg-white text-black p-3 border-2 border-black font-bold focus:outline-none focus:ring-4 focus:ring-accent"
-            placeholder="Kosongkan jika tanpa batas kuota"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-white uppercase tracking-wider">Minimal Belanja (Rp)</label>
+            <input 
+              type="number" 
+              name="min_purchase" 
+              min="1"
+              className="w-full bg-white text-black p-3 border-2 border-black font-bold focus:outline-none focus:ring-4 focus:ring-accent"
+              placeholder="Kosongkan jika tanpa batas"
+            />
+          </div>
+          
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-white uppercase tracking-wider">Kuota Penggunaan</label>
+            <input 
+              type="number" 
+              name="quota" 
+              min="1"
+              className="w-full bg-white text-black p-3 border-2 border-black font-bold focus:outline-none focus:ring-4 focus:ring-accent"
+              placeholder="Kosongkan jika tanpa batas"
+            />
+          </div>
         </div>
 
         <button 

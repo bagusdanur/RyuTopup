@@ -96,6 +96,12 @@ export default function OrderActions({ order }: { order: any }) {
                   <span className="text-xs text-white/50 uppercase tracking-wider">Total Pembayaran</span>
                   <span className="text-lg font-mono text-accent-green">Rp {order.price_total.toLocaleString('id-ID')}</span>
                 </div>
+                {order.promo_code && (
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-xs text-white/50 uppercase tracking-wider">Promo Dipakai</span>
+                    <span className="font-mono text-accent-orange bg-white/10 px-2 py-0.5">{order.promo_code} (-Rp {order.discount_amount?.toLocaleString('id-ID')})</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-xs text-white/50 uppercase tracking-wider">Metode Bayar</span>
                   <span className="uppercase">{order.payment_method}</span>

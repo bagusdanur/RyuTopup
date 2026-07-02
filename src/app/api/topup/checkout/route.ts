@@ -171,7 +171,7 @@ export async function POST(request: Request) {
 
     // --- SEND INVOICE EMAIL ---
     if (email && email.trim() !== "") {
-      const emailHtml = generateInvoiceEmailHtml(invoiceId, itemName, priceTotal);
+      const emailHtml = generateInvoiceEmailHtml(invoiceId, itemName, priceTotal, promoCode, discountAmount);
       // Fire and forget (don't await) so it doesn't slow down checkout
       sendEmail({
         to: email.trim(),

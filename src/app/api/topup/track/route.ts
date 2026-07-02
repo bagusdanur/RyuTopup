@@ -46,6 +46,8 @@ export async function GET(request: Request) {
       priceBase: Number(data.price_base),
       priceFee: Number(data.price_fee),
       priceTotal: Number(data.price_total),
+      promoCode: data.promo_code,
+      discountAmount: data.discount_amount ? Number(data.discount_amount) : 0,
       createdAt: data.created_at,
       date: new Date(data.created_at).toLocaleString("id-ID", {
         dateStyle: "medium",

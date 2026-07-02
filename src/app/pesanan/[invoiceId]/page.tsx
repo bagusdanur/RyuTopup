@@ -428,6 +428,12 @@ export default function PesananPage() {
                         <span className="font-mono">Rp {uniqueCode.toLocaleString("id-ID")}</span>
                       </div>
                     )}
+                    {order.promoCode && order.discountAmount ? (
+                      <div className="flex justify-between items-center text-accent-green">
+                        <span className="uppercase tracking-wide text-[10.5px]">Diskon Promo ({order.promoCode})</span>
+                        <span className="font-mono">- Rp {order.discountAmount.toLocaleString("id-ID")}</span>
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* Total Payment (Dashed top) */}
