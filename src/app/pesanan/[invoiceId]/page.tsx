@@ -40,6 +40,38 @@ export default function PesananPage() {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [isAccordionOpen, setIsAccordionOpen] = useState(true);
 
+  const [rating, setRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
+  const handleSubmitReview = async () => {
+    if (!order) return;
+    setIsSubmittingReview(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: order.invoiceId,
+          rating,
+          comment: reviewComment
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setReviewSubmitted(true);
+      } else {
+        alert("Gagal mengirim ulasan: " + (data.error || ""));
+      }
+    } catch (e) {
+      alert("Terjadi kesalahan jaringan");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   const fetchOrderDetails = async () => {
     try {
       setIsLoading(true);
@@ -51,6 +83,7 @@ export default function PesananPage() {
         setErrorMsg(data.error || "Pesanan tidak ditemukan.");
       } else {
         setOrder(data);
+        if (data.hasReviewed) setReviewSubmitted(true);
       }
     } catch (err: any) {
       setErrorMsg("Gagal menghubungi server untuk memuat detail pesanan.");
@@ -60,10 +93,27 @@ export default function PesananPage() {
   };
 
   useEffect(() => {
-    if (invoiceId) {
-      fetchOrderDetails();
-    }
+    fetchOrderDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceId]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (order && (order.status === 'pending' || order.status === 'processing')) {
+      interval = setInterval(() => {
+        fetch(`/api/topup/track?invoiceId=${encodeURIComponent(order.invoiceId)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && !data.error) {
+              setOrder(data);
+              if (data.hasReviewed) setReviewSubmitted(true);
+            }
+          })
+          .catch(err => console.error(err));
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [order?.status, order?.invoiceId]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -478,6 +528,52 @@ export default function PesananPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Review Form */}
+                {order.status === "success" && (
+                  <div className="pt-4 mt-4 border-t-2 border-white/20 border-dashed">
+                    {reviewSubmitted ? (
+                      <div className="bg-accent/20 border-2 border-accent p-4 text-center space-y-2 rounded-none shadow-neo-sm">
+                        <div className="flex justify-center text-accent mb-2">
+                          <FiCheck className="w-8 h-8" />
+                        </div>
+                        <div className="font-black text-white uppercase tracking-wider text-sm">Terima Kasih!</div>
+                        <p className="text-xs text-white/80 font-bold">Ulasan Anda sangat berarti bagi kami.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 bg-black border-2 border-white p-4 shadow-neo-sm">
+                        <h4 className="text-xs font-black text-white uppercase tracking-wider text-center">Bagaimana pengalaman top-up Anda?</h4>
+                        <div className="flex justify-center gap-3 py-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() => setRating(star)}
+                              className={`text-3xl transition-transform hover:scale-110 ${
+                                rating >= star ? "text-accent-orange" : "text-white/20"
+                              }`}
+                            >
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value)}
+                          placeholder="Bagikan ulasan Anda di sini (opsional)..."
+                          className="w-full bg-white/5 border-2 border-white/20 p-3 text-xs font-bold text-white outline-none focus:border-accent resize-none placeholder-white/40 rounded-none transition-colors"
+                          rows={3}
+                        />
+                        <button
+                          onClick={handleSubmitReview}
+                          disabled={isSubmittingReview}
+                          className="w-full bg-accent border-2 border-accent text-black px-4 py-3 text-xs font-black uppercase tracking-wider hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-neo-orange transition-all disabled:opacity-50 mt-2"
+                        >
+                          {isSubmittingReview ? "Mengirim..." : "Kirim Ulasan"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* ACTION CTAs */}
                 <div className="space-y-3 pt-2">

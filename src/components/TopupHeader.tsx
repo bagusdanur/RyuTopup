@@ -18,7 +18,7 @@ export default function TopupHeader({ searchQuery = "", onSearchChange }: TopupH
     <>
       <header className="sticky top-0 z-40 bg-black border-b-3 border-white">
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-[76px] flex items-center justify-between gap-4">
-          
+
           {/* LOGO RYUTOPUP */}
           <Link href="/" className="flex items-center gap-1.5 shrink-0 select-none">
             <span className="text-xl font-black italic tracking-wide text-white flex items-center gap-1">

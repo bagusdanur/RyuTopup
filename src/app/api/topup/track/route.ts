@@ -27,6 +27,13 @@ export async function GET(request: Request) {
       );
     }
 
+    // Check if review exists
+    const { data: reviewData } = await supabaseServer
+      .from("reviews")
+      .select("id")
+      .eq("invoice_id", data.id)
+      .maybeSingle();
+
     // Map database fields back to the frontend shape
     const responseData = {
       invoiceId: data.id,
@@ -45,6 +52,7 @@ export async function GET(request: Request) {
         timeStyle: "short",
       }) + " WIB",
       status: data.topup_status, // pending, processing, success, failed
+      hasReviewed: !!reviewData,
     };
 
     return NextResponse.json(responseData);

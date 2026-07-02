@@ -143,6 +143,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [waError, setWaError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     "QRIS": true,
@@ -151,6 +152,9 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     "Virtual Account": false,
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [nickname, setNickname] = useState<string | null>(null);
+  const [isLoadingNickname, setIsLoadingNickname] = useState(false);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
 
   const selectedItem = data.items.find((i: any) => i.id === activeItem);
   const selectedPayment = PAYMENT_METHODS.find((p) => p.id === activePayment);
@@ -178,10 +182,46 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     setCheckoutError(null);
   };
 
+  const handleCheckNickname = async () => {
+    setNicknameError(null);
+    setNickname(null);
+
+    // Get the first field for generic ID, or userId/zoneId specifically
+    let targetId = accountData.userId ? `${accountData.userId}(${accountData.zoneId||''})` : Object.values(accountData)[0]?.trim();
+    
+    if (!targetId || targetId.length < 3) {
+      setNicknameError("Harap isi User ID dengan benar");
+      return;
+    }
+
+    setIsLoadingNickname(true);
+    
+    try {
+      const response = await fetch("/api/check-nickname", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId, targetId }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Gagal menemukan Nickname");
+      }
+      
+      setNickname(result.nickname);
+    } catch (err: any) {
+      setNicknameError(err.message);
+    } finally {
+      setIsLoadingNickname(false);
+    }
+  };
+
   const handleCheckoutClick = () => {
     // Reset errors
     setFieldErrors({});
     setWaError(null);
+    setEmailError(null);
     setCheckoutError(null);
 
     // Check item selection (return early to satisfy TS compiler)
@@ -218,8 +258,11 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     }
     
     // Email validation
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setCheckoutError("Format email tidak valid");
+    if (!email.trim()) {
+      setEmailError("ALAMAT EMAIL TIDAK BOLEH KOSONG");
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailError("FORMAT EMAIL TIDAK VALID");
       hasError = true;
     }
 
@@ -247,6 +290,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     }
 
     if (hasError) {
+      setTimeout(() => {
+        const errorElement = document.querySelector('[data-error="true"]');
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
       return;
     }
 
@@ -385,7 +434,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
             {/* Dynamic account fields */}
             <div className={`grid gap-3.5 ${data.fields.length >= 2 ? "grid-cols-2" : "grid-cols-1"}`}>
               {data.fields.map((field: any) => (
-                <div key={field.id} className="flex flex-col gap-2">
+                <div key={field.id} className="flex flex-col gap-2" data-error={fieldErrors[field.id] ? "true" : undefined}>
                   <label htmlFor={field.id} className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">{field.label}</label>
                   {field.type === "select" ? (
                     <select
@@ -422,8 +471,29 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
               ))}
             </div>
 
+            {/* Nickname Check */}
+            <div className="pt-1">
+              <button
+                onClick={handleCheckNickname}
+                disabled={isLoadingNickname}
+                className="bg-accent border-2 border-accent text-black px-4 py-2 text-xs font-black uppercase tracking-wider shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50"
+              >
+                {isLoadingNickname ? "Mengecek..." : "Cek Nickname"}
+              </button>
+              
+              {nicknameError && (
+                <div className="mt-2 text-[11px] text-rose-500 font-bold uppercase">{nicknameError}</div>
+              )}
+              {nickname && (
+                <div className="mt-2 bg-green-500/10 border-2 border-green-500 p-2.5 flex flex-col animate-fadeIn">
+                  <span className="text-[10px] text-green-500 font-black uppercase tracking-wider mb-0.5">Nickname Ditemukan:</span>
+                  <span className="text-sm text-green-400 font-bold">{nickname}</span>
+                </div>
+              )}
+            </div>
+
             {/* Global Whatsapp Field */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pt-2" data-error={waError ? "true" : undefined}>
               <label htmlFor="wa" className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">Nomor WhatsApp</label>
               <input
                 id="wa"
@@ -441,18 +511,23 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
             </div>
 
             {/* Global Email Field */}
-            <div className="flex flex-col gap-2 pt-2">
+            <div className="flex flex-col gap-2 pt-2" data-error={emailError ? "true" : undefined}>
               <label htmlFor="email" className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">
-                Alamat Email <span className="text-white/50 normal-case text-[10px]">(opsional)</span>
+                Alamat Email
               </label>
               <input
                 id="email"
                 type="email"
                 placeholder="nama@email.com (Untuk Invoice)"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setCheckoutError(null); }}
-                className="bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none placeholder-white/40 focus:shadow-neo transition-all w-full rounded-none"
+                onChange={(e) => { setEmail(e.target.value); setEmailError(null); setCheckoutError(null); }}
+                className={`bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none placeholder-white/40 focus:shadow-neo transition-all w-full rounded-none ${
+                  emailError ? "border-rose-500 placeholder-rose-500/50" : ""
+                }`}
               />
+              {emailError && (
+                <span className="text-[10px] text-rose-400 font-extrabold uppercase tracking-wide">{emailError}</span>
+              )}
             </div>
           </div>
 

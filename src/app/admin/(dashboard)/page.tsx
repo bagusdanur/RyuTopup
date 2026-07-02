@@ -8,7 +8,7 @@ export default async function AdminDashboardOverview() {
   // Fetch real data from topup_transactions
   const { data: orders, error } = await supabaseServer
     .from("topup_transactions")
-    .select("price_total, payment_status, id, game_id, item_name, target_id, payment_method")
+    .select("price_total, payment_status, topup_status, id, game_id, item_name, target_id, payment_method")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -24,9 +24,9 @@ export default async function AdminDashboardOverview() {
     ?.filter(o => o.payment_status === 'success')
     .reduce((sum, order) => sum + (order.price_total || 0), 0) || 0;
 
-  const totalSuccess = orders?.filter(o => o.payment_status === 'success').length || 0;
-  const totalPending = orders?.filter(o => o.payment_status === 'pending').length || 0;
-  const recentPending = orders?.filter(o => o.payment_status === 'pending').slice(0, 5) || [];
+  const totalSuccess = orders?.filter(o => o.topup_status === 'success').length || 0;
+  const totalPending = orders?.filter(o => o.topup_status === 'processing').length || 0;
+  const recentPending = orders?.filter(o => o.topup_status === 'processing').slice(0, 5) || [];
 
   return (
     <div className="space-y-10 animate-fadeIn">

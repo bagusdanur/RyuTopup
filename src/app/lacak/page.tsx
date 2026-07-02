@@ -74,6 +74,11 @@ export default function LacakPesananPage() {
   const [searchedOrder, setSearchedOrder] = useState<TrackedOrder | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [rating, setRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   // Extract item icon from GAME_DATA
   const gameData = searchedOrder ? GAME_DATA[searchedOrder.gameId] : null;
@@ -106,11 +111,57 @@ export default function LacakPesananPage() {
         }
       } else {
         setSearchedOrder(data);
+        if (data.hasReviewed) setReviewSubmitted(true);
       }
     } catch (err: any) {
       setErrorMsg("Gagal menghubungi server untuk melacak pesanan.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (searchedOrder && (searchedOrder.status === 'pending' || searchedOrder.status === 'processing')) {
+      interval = setInterval(() => {
+        fetch(`/api/topup/track?invoiceId=${encodeURIComponent(searchedOrder.invoiceId)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && !data.error) {
+              setSearchedOrder(data);
+              if (data.hasReviewed) setReviewSubmitted(true);
+            }
+          })
+          .catch(err => console.error(err));
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [searchedOrder?.status, searchedOrder?.invoiceId]);
+
+  const handleSubmitReview = async () => {
+    if (!searchedOrder) return;
+    setIsSubmittingReview(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: searchedOrder.invoiceId,
+          rating,
+          comment: reviewComment
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setReviewSubmitted(true);
+      } else {
+        alert("Gagal mengirim ulasan: " + (data.error || ""));
+      }
+    } catch (e) {
+      alert("Terjadi kesalahan jaringan");
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -282,30 +333,50 @@ export default function LacakPesananPage() {
               </div>
             </div>
 
-            {/* Whatsapp Box for Pending status */}
-            {searchedOrder.status === "pending" && (
-              <div className="bg-black border border-white/20 p-4 space-y-3 rounded-none shadow-neo-sm">
-                <p className="text-[11.5px] text-white/85 leading-relaxed font-bold">
-                  Untuk mempercepat proses verifikasi dan pengisian diamond, silakan kirim bukti pembayaran atau lakukan konfirmasi langsung ke WhatsApp Customer Service kami.
-                </p>
-                <a
-                  href={`https://wa.me/${csWhatsapp}?text=${encodeURIComponent(
-                    `Halo CS RyuTopup, saya ingin mengonfirmasi pembayaran untuk transaksi berikut:\n\n` +
-                    `• No. Invoice: ${searchedOrder.invoiceId}\n` +
-                    `• Game: ${searchedOrder.gameName}\n` +
-                    `• Item: ${searchedOrder.item}\n` +
-                    `• Target ID: ${searchedOrder.targetId}\n` +
-                    `• Metode Bayar: ${searchedOrder.paymentMethod}\n` +
-                    `• Total Bayar: ${searchedOrder.price}\n\n` +
-                    `Berikut saya sertakan bukti transfer pembayarannya. Mohon segera diproses ya Kak, terima kasih!`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 font-black text-xs text-black bg-white border-2 border-white shadow-neo py-3 transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none uppercase tracking-wider cursor-pointer"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="w-4.5 h-4.5"><path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.758.46 3.473 1.332 4.984L2 22l5.244-1.376a9.92 9.92 0 0 0 4.767 1.21h.005c5.506 0 9.987-4.483 9.987-9.99A9.957 9.957 0 0 0 12.012 2zm0 1.832c4.498 0 8.156 3.658 8.156 8.156 0 4.5-3.658 8.158-8.156 8.158a8.106 8.106 0 0 1-4.148-1.129l-.298-.176-3.084.81.823-3.006-.194-.308a8.118 8.118 0 0 1-1.127-4.19c.002-4.498 3.66-8.155 8.158-8.155zm-1.846 2.378c-.256-.008-.528.058-.724.238-.344.316-.948.966-.948 2.355 0 1.39 1.01 2.73 1.15 2.92.14.19 1.94 3.03 4.76 4.14.67.26 1.19.42 1.6.55.67.21 1.28.18 1.77.11.54-.08 1.67-.68 1.9-1.34.23-.66.23-1.22.16-1.34-.07-.12-.26-.19-.55-.33-.29-.14-1.7-.84-1.96-.94-.26-.09-.45-.14-.64.14-.19.28-.73.94-.9 1.13-.16.19-.33.21-.62.07-.29-.14-1.22-.45-2.33-1.44-.86-.77-1.44-1.72-1.61-2.01-.17-.29-.02-.45.12-.59.13-.13.29-.34.44-.5.15-.17.2-.28.3-.47.1-.19.05-.36-.02-.5-.07-.14-.64-1.54-.87-2.1-.23-.55-.47-.48-.64-.49z"/></svg>
-                  Kirim Konfirmasi ke WhatsApp
-                </a>
+
+            {/* Review Form */}
+            {searchedOrder.status === "success" && (
+              <div className="pt-4 border-t-2 border-white/20 border-dashed">
+                {reviewSubmitted ? (
+                  <div className="bg-accent/20 border-2 border-accent p-4 text-center space-y-2">
+                    <div className="flex justify-center text-accent mb-2">
+                      <FiCheck className="w-8 h-8" />
+                    </div>
+                    <div className="font-black text-white uppercase tracking-wider text-sm">Terima Kasih!</div>
+                    <p className="text-xs text-white/80 font-bold">Ulasan Anda sangat berarti bagi kami.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-white uppercase tracking-wider">Bagaimana pengalaman top-up Anda?</h4>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setRating(star)}
+                          className={`text-2xl transition-transform hover:scale-110 ${
+                            rating >= star ? "text-accent-orange" : "text-white/20"
+                          }`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Bagikan ulasan Anda di sini (opsional)..."
+                      className="w-full bg-black border-2 border-white p-3 text-xs font-bold text-white outline-none focus:border-accent resize-none placeholder-white/40"
+                      rows={3}
+                    />
+                    <button
+                      onClick={handleSubmitReview}
+                      disabled={isSubmittingReview}
+                      className="bg-white text-black px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                      {isSubmittingReview ? "Mengirim..." : "Kirim Ulasan"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

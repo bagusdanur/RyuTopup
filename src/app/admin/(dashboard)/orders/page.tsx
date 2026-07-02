@@ -1,15 +1,26 @@
 import { supabaseServer } from "@/lib/supabaseServer";
-import { FiCheck, FiX, FiClock, FiRefreshCw } from "react-icons/fi";
+import OrderActions from "./OrderActions";
 
 export const dynamic = "force-dynamic";
 
 // This is a Server Component. It fetches data directly from Supabase securely.
-export default async function AdminOrdersPage() {
+export default async function AdminOrdersPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const searchParams = await props.searchParams;
+  const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
+  const limit = 10; // 10 items per page
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
   // Fetch transactions from the existing topup_transactions table
-  const { data: orders, error } = await supabaseServer
+  const { data: orders, error, count } = await supabaseServer
     .from("topup_transactions")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  const totalPages = count ? Math.ceil(count / limit) : 1;
 
   if (error) {
     return (
@@ -19,17 +30,40 @@ export default async function AdminOrdersPage() {
     );
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "success":
-        return <span className="bg-accent-green text-black px-2 py-1 text-[9px] font-black uppercase border border-black shadow-neo-sm">Sukses</span>;
-      case "processing":
-        return <span className="bg-accent text-black px-2 py-1 text-[9px] font-black uppercase border border-black shadow-neo-sm animate-pulse">Diproses</span>;
-      case "failed":
-        return <span className="bg-accent-red text-white px-2 py-1 text-[9px] font-black uppercase border border-white shadow-neo-sm">Gagal</span>;
-      default:
-        return <span className="bg-accent-orange text-black px-2 py-1 text-[9px] font-black uppercase border border-black shadow-neo-sm">Pending</span>;
+  const getStatusBadge = (topupStatus: string, paymentStatus: string) => {
+    // 1. Sukses (Selesai semua)
+    if (topupStatus === 'success') {
+      return (
+        <span className="bg-accent-green text-black px-3 py-1.5 text-[10px] font-black uppercase border-2 border-accent-green shadow-neo-sm text-center inline-block min-w-[90px]">
+          Selesai
+        </span>
+      );
     }
+    
+    // 2. Gagal (Batal)
+    if (topupStatus === 'failed' || paymentStatus === 'failed' || paymentStatus === 'expired' || paymentStatus === 'cancelled') {
+      return (
+        <span className="bg-accent-red text-white px-3 py-1.5 text-[10px] font-black uppercase border-2 border-accent-red shadow-neo-sm text-center inline-block min-w-[90px]">
+          Batal
+        </span>
+      );
+    }
+
+    // 3. Menunggu Pembayaran
+    if (paymentStatus === 'pending') {
+      return (
+        <span className="bg-white text-black px-3 py-1.5 text-[10px] font-black uppercase border-2 border-white shadow-neo-sm text-center inline-block min-w-[90px]">
+          Pending
+        </span>
+      );
+    }
+
+    // 4. Diproses (Sudah bayar, diamond belum dikirim)
+    return (
+      <span className="bg-accent-orange text-black px-3 py-1.5 text-[10px] font-black uppercase border-2 border-accent-orange shadow-neo-sm text-center inline-block min-w-[90px] animate-pulse">
+        Diproses
+      </span>
+    );
   };
 
   return (
@@ -48,7 +82,7 @@ export default async function AdminOrdersPage() {
 
       {/* ORDERS TABLE */}
       <div className="bg-black border-2 border-white p-5 shadow-neo overflow-x-auto rounded-none">
-        <table className="w-full text-left min-w-[900px] border-collapse">
+        <table className="w-full text-left min-w-[950px] border-collapse">
           <thead>
             <tr className="border-b-2 border-white/20 text-[10px] font-black text-white/60 uppercase tracking-widest">
               <th className="pb-3 px-2">Waktu</th>
@@ -56,14 +90,14 @@ export default async function AdminOrdersPage() {
               <th className="pb-3 px-2">Game / Item</th>
               <th className="pb-3 px-2">Target ID</th>
               <th className="pb-3 px-2">Total Bayar</th>
-              <th className="pb-3 px-2">Status Bayar</th>
-              <th className="pb-3 px-2 text-right">Aksi Manual</th>
+              <th className="pb-3 px-2">Status Pesanan</th>
+              <th className="pb-3 px-2 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="text-xs font-bold text-white">
             {orders?.map((order) => (
               <tr key={order.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                <td className="py-4 px-2 whitespace-nowrap text-white/70">
+                <td className="py-4 px-2 whitespace-nowrap text-white/70" suppressHydrationWarning>
                   {new Date(order.created_at).toLocaleString('id-ID', {
                     dateStyle: 'short',
                     timeStyle: 'short',
@@ -82,38 +116,22 @@ export default async function AdminOrdersPage() {
                   <span className="text-[10px] text-white/50">{order.item_name}</span>
                 </td>
 
-                <td className="py-4 px-2 font-mono">
+                <td className="py-4 px-2 font-mono text-accent-yellow">
                   {order.target_id}
                 </td>
 
                 <td className="py-4 px-2">
-                  <span className="font-mono">Rp {order.price_total.toLocaleString('id-ID')}</span>
+                  <span className="font-mono text-white">Rp {order.price_total.toLocaleString('id-ID')}</span>
                   <br />
-                  <span className="text-[9px] uppercase text-white/50">{order.payment_method}</span>
+                  <span className="text-[9px] uppercase text-white/50 bg-white/10 px-1 py-0.5 mt-1 inline-block">{order.payment_method}</span>
                 </td>
 
                 <td className="py-4 px-2">
-                  {getStatusBadge(order.payment_status)}
+                  {getStatusBadge(order.topup_status, order.payment_status)}
                 </td>
 
-                <td className="py-4 px-2 text-right">
-                  <div className="flex justify-end gap-1.5">
-                    {order.payment_status === 'pending' && (
-                      <button className="bg-accent text-black p-1.5 border-2 border-accent shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none" title="Tandai Sukses">
-                        <FiCheck className="w-4 h-4" />
-                      </button>
-                    )}
-                    {order.payment_status === 'pending' && (
-                      <button className="bg-accent-red text-white p-1.5 border-2 border-accent-red shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none" title="Batalkan">
-                        <FiX className="w-4 h-4" />
-                      </button>
-                    )}
-                    {(order.payment_status === 'success' || order.payment_status === 'processing') && (
-                       <button className="bg-black text-white p-1.5 border-2 border-white shadow-neo-sm hover:bg-white hover:text-black hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all text-[10px] uppercase font-black px-2">
-                         Detail
-                       </button>
-                    )}
-                  </div>
+                <td className="py-4 px-2 text-right" suppressHydrationWarning>
+                  <OrderActions order={order} />
                 </td>
               </tr>
             ))}
@@ -128,6 +146,33 @@ export default async function AdminOrdersPage() {
           </tbody>
         </table>
       </div>
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-black border-2 border-white p-4 text-xs font-black text-white shadow-neo">
+          <span className="uppercase tracking-wider">Halaman <span className="text-accent">{page}</span> dari <span className="text-accent">{totalPages}</span></span>
+          <div className="flex gap-2">
+            {page > 1 ? (
+              <a href={`/admin/orders?page=${page - 1}`} className="bg-white text-black px-4 py-2 border-2 border-white hover:bg-accent hover:border-accent hover:translate-x-[1px] hover:translate-y-[1px] shadow-neo-sm uppercase transition-all">
+                Mundur
+              </a>
+            ) : (
+              <span className="bg-white/10 text-white/50 px-4 py-2 border-2 border-white/20 cursor-not-allowed uppercase">
+                Mundur
+              </span>
+            )}
+            {page < totalPages ? (
+              <a href={`/admin/orders?page=${page + 1}`} className="bg-white text-black px-4 py-2 border-2 border-white hover:bg-accent hover:border-accent hover:translate-x-[1px] hover:translate-y-[1px] shadow-neo-sm uppercase transition-all">
+                Lanjut
+              </a>
+            ) : (
+              <span className="bg-white/10 text-white/50 px-4 py-2 border-2 border-white/20 cursor-not-allowed uppercase">
+                Lanjut
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -125,7 +125,10 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
                       <input
                         type="number"
                         value={editForm.price}
-                        onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })}
+                        onChange={(e) => {
+                          const newPrice = Number(e.target.value);
+                          setEditForm({ ...editForm, price: newPrice });
+                        }}
                         className="w-full bg-black border-2 border-white p-1.5 text-white outline-none focus:border-accent"
                       />
                     ) : (
@@ -153,7 +156,24 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
                       <input
                         type="text"
                         value={editForm.discount}
-                        onChange={(e) => setEditForm({ ...editForm, discount: e.target.value })}
+                        onChange={(e) => {
+                          let val = e.target.value;
+                          let newPrice = editForm.price;
+                          let newOriginalPrice = editForm.original_price;
+                          
+                          const match = val.match(/(\d+(\.\d+)?)/);
+                          if (match) {
+                            const discountPercent = parseFloat(match[1]);
+                            if (discountPercent > 0 && discountPercent < 100) {
+                              // Use the current price as the original baseline if original_price hasn't been set yet
+                              const basePrice = newOriginalPrice > 0 ? newOriginalPrice : editForm.price;
+                              newOriginalPrice = basePrice;
+                              newPrice = Math.round(basePrice * (1 - (discountPercent / 100)));
+                            }
+                          }
+
+                          setEditForm({ ...editForm, discount: val, price: newPrice, original_price: newOriginalPrice });
+                        }}
                         placeholder="Contoh: 10% OFF"
                         className="w-full bg-black border-2 border-white p-1.5 text-white outline-none focus:border-accent text-[10px]"
                       />

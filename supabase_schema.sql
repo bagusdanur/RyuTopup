@@ -57,3 +57,17 @@ CREATE POLICY "Allow admin full access to products" ON public.products FOR ALL U
 -- ALTER TABLE public.topup_transactions ADD COLUMN IF NOT EXISTS pg_payment_number TEXT;
 -- ALTER TABLE public.topup_transactions ADD COLUMN IF NOT EXISTS pg_expired_at TIMESTAMP WITH TIME ZONE;
 -- ALTER TABLE public.topup_transactions ADD COLUMN IF NOT EXISTS pg_fee INTEGER;
+
+-- 3. Create Reviews Table
+CREATE TABLE public.reviews (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    invoice_id TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access to reviews" ON public.reviews FOR SELECT USING (true);
+CREATE POLICY "Allow public insert to reviews" ON public.reviews FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow admin full access to reviews" ON public.reviews FOR ALL USING (auth.role() = 'authenticated');

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FaInstagram, FaWhatsapp } from "react-icons/fa";
+import { FaWhatsapp } from "react-icons/fa";
 import { FiHeadphones } from "react-icons/fi";
 
 export default function TopupFooter() {
@@ -10,7 +10,7 @@ export default function TopupFooter() {
   return (
     <footer className="mt-16 border-t-3 border-white bg-black text-white text-xs">
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-12 flex flex-col gap-8">
-        
+
         {/* LOGO & BRAND DETAILS */}
         <div className="flex flex-col gap-3">
           <Link href="/" className="flex items-center gap-1.5 shrink-0 select-none self-start">
@@ -28,7 +28,7 @@ export default function TopupFooter() {
 
         {/* MID GRID: LINKS & ACTIONS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 border-t-2 border-white pt-8">
-          
+
           {/* COL 1: PETA SITUS */}
           <div className="flex flex-col gap-3">
             <h4 className="text-[11px] font-black uppercase tracking-wider text-white">
@@ -88,15 +88,6 @@ export default function TopupFooter() {
               Ikuti Kami
             </h4>
             <div className="flex gap-3.5 items-center mt-1">
-              <a
-                href="https://www.instagram.com/empe.shop/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Instagram"
-                className="w-9 h-9 border-2 border-white bg-black hover:bg-white hover:text-black flex items-center justify-center text-white transition-all shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
-              >
-                <FaInstagram className="w-[17px] h-[17px]" />
-              </a>
               <a
                 href={`https://wa.me/${csWhatsapp}`}
                 target="_blank"

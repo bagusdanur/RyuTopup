@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import TopupHeader from "@/components/TopupHeader";
 import TopupFooter from "@/components/TopupFooter";
+import TestimonialSlider from "@/components/TestimonialSlider";
 
 import { FaGamepad, FaCrown, FaTrophy } from "react-icons/fa";
 
@@ -230,6 +231,9 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
           )}
         </section>
       </main>
+
+      {/* TESTIMONIALS */}
+      <TestimonialSlider />
 
       {/* FOOTER */}
       <TopupFooter />

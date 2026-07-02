@@ -45,9 +45,6 @@ export const metadata: Metadata = {
     description: "Top up diamond, UC, dan voucher game favoritmu dengan harga paling miring dan proses secepat kilat.",
     images: ["https://ryutopup.com/og-image.jpg"],
   },
-  icons: {
-    icon: "/icon-ryutopup.png",
-  },
 };
 
 export default function RootLayout({
