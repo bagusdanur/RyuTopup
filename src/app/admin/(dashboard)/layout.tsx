@@ -46,6 +46,10 @@ export default function AdminLayout({
             {/* Notification Dot mock */}
             <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-accent-red border-2 border-black rounded-full animate-pulse"></span>
           </Link>
+          <Link href="/admin/promo" className="flex items-center gap-4 px-4 py-3.5 bg-black border-2 border-white hover:bg-accent hover:text-black hover:border-accent hover:translate-x-1 transition-all shadow-neo font-black text-sm uppercase tracking-wider group">
+            <FiTag className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            Kode Promo
+          </Link>
         </nav>
 
         <div className="p-6 border-t-4 border-white bg-black">

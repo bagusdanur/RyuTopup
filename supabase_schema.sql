@@ -71,3 +71,25 @@ ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read access to reviews" ON public.reviews FOR SELECT USING (true);
 CREATE POLICY "Allow public insert to reviews" ON public.reviews FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow admin full access to reviews" ON public.reviews FOR ALL USING (auth.role() = 'authenticated');
+
+-- 4. Create Promo Codes Table
+CREATE TABLE public.promo_codes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    code TEXT UNIQUE NOT NULL,
+    discount_amount BIGINT, -- e.g., 5000 (flat Rp 5.000)
+    discount_percentage INTEGER, -- e.g., 10 (10%)
+    max_discount BIGINT, -- max discount if using percentage
+    quota INTEGER, -- e.g. 50 usage limit. If null, unlimited
+    used INTEGER DEFAULT 0,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.promo_codes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access to active promo_codes" ON public.promo_codes FOR SELECT USING (is_active = true);
+CREATE POLICY "Allow admin full access to promo_codes" ON public.promo_codes FOR ALL USING (auth.role() = 'authenticated');
+
+-- To add promo code support to topup_transactions, run this in SQL Editor:
+-- ALTER TABLE public.topup_transactions ADD COLUMN IF NOT EXISTS promo_code TEXT;
+-- ALTER TABLE public.topup_transactions ADD COLUMN IF NOT EXISTS discount_amount BIGINT DEFAULT 0;

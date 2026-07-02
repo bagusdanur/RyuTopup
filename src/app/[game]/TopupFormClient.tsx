@@ -139,6 +139,10 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const [waNumber, setWaNumber] = useState("");
   const [email, setEmail] = useState("");
   const [voucherCode, setVoucherCode] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
+  const [isCheckingPromo, setIsCheckingPromo] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -159,7 +163,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const selectedItem = data.items.find((i: any) => i.id === activeItem);
   const selectedPayment = PAYMENT_METHODS.find((p) => p.id === activePayment);
   
-  const totalPrice = (selectedItem?.price || 0) + (selectedPayment?.fee || 0);
+  const totalPrice = Math.max((selectedItem?.price || 0) + (selectedPayment?.fee || 0) - discountAmount, 0);
 
   const passes = data.items.filter((item: any) => item.isPass);
   const regularItems = data.items.filter((item: any) => !item.isPass);
@@ -214,6 +218,49 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       setNicknameError(err.message);
     } finally {
       setIsLoadingNickname(false);
+    }
+  };
+
+  const handleApplyPromo = async () => {
+    setPromoError(null);
+    setPromoSuccess(null);
+    setDiscountAmount(0);
+
+    if (!voucherCode.trim()) {
+      setPromoError("Masukkan kode voucher terlebih dahulu");
+      return;
+    }
+    if (!selectedItem) {
+      setPromoError("Pilih nominal top up terlebih dahulu");
+      return;
+    }
+    const cleanWa = waNumber.trim().replace(/\D/g, "");
+    if (!cleanWa) {
+      setPromoError("Isi Nomor WhatsApp Anda di atas untuk verifikasi");
+      return;
+    }
+
+    setIsCheckingPromo(true);
+    try {
+      const res = await fetch("/api/promo/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          code: voucherCode, 
+          originalPrice: selectedItem.price + (selectedPayment?.fee || 0),
+          waNumber: cleanWa
+        })
+      });
+      const resData = await res.json();
+      if (!res.ok || !resData.success) {
+        throw new Error(resData.error || "Kode promo tidak valid");
+      }
+      setDiscountAmount(resData.discount);
+      setPromoSuccess(`Voucher berhasil! Diskon Rp ${resData.discount.toLocaleString("id-ID")}`);
+    } catch (err: any) {
+      setPromoError(err.message);
+    } finally {
+      setIsCheckingPromo(false);
     }
   };
 
@@ -341,6 +388,8 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
           priceFee: selectedPayment.fee,
           priceTotal: totalPrice,
           paymentMethod: selectedPayment.id,
+          promoCode: discountAmount > 0 ? voucherCode : null,
+          discountAmount: discountAmount
         }),
       });
 
@@ -765,13 +814,24 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                 type="text"
                 placeholder="Masukkan kode voucher"
                 value={voucherCode}
-                onChange={(e) => setVoucherCode(e.target.value)}
-                className="bg-black border-2 border-white text-white rounded-none px-4 py-2.5 text-[13px] md:text-[13.5px] focus:shadow-neo outline-none transition-all placeholder-white/40 flex-1 font-bold"
+                onChange={(e) => {
+                  setVoucherCode(e.target.value);
+                  setPromoError(null);
+                  setPromoSuccess(null);
+                  if (discountAmount > 0) setDiscountAmount(0); // reset if modified
+                }}
+                className="bg-black border-2 border-white text-white rounded-none px-4 py-2.5 text-[13px] md:text-[13.5px] focus:shadow-neo outline-none transition-all placeholder-white/40 flex-1 font-bold uppercase"
               />
-              <button className="bg-accent border-2 border-accent text-black rounded-none px-5 font-black text-xs md:text-sm select-none transition-all shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none uppercase tracking-wider cursor-pointer">
-                Pakai Voucher
+              <button 
+                onClick={handleApplyPromo}
+                disabled={isCheckingPromo}
+                className="bg-accent border-2 border-accent text-black rounded-none px-5 font-black text-xs md:text-sm select-none transition-all shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none uppercase tracking-wider cursor-pointer disabled:opacity-50"
+              >
+                {isCheckingPromo ? "Cek..." : "Pakai"}
               </button>
             </div>
+            {promoError && <div className="text-[11px] text-rose-500 font-bold uppercase tracking-wide">{promoError}</div>}
+            {promoSuccess && <div className="text-[11px] text-accent-green font-bold uppercase tracking-wide">{promoSuccess}</div>}
           </div>
 
           {/* Panel 6: FAQ Accordion */}
@@ -845,6 +905,13 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                 {selectedPayment ? `Rp ${selectedPayment.fee.toLocaleString("id-ID")}` : "Rp 0"}
               </span>
             </div>
+
+            {discountAmount > 0 && (
+              <div className="flex justify-between items-center text-[13.5px] font-bold text-accent-green">
+                <span className="uppercase text-xs">Diskon Promo</span>
+                <span>- Rp {discountAmount.toLocaleString("id-ID")}</span>
+              </div>
+            )}
 
             <div className="flex justify-between items-center text-[14.5px] pt-4 border-t-2 border-dashed border-white font-black">
               <span className="text-white/70 uppercase text-xs">Total Bayar</span>
@@ -961,6 +1028,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                   <span className="text-white/60 uppercase">Fee</span>
                   <span className="font-black text-white text-right">Rp {selectedPayment?.fee.toLocaleString("id-ID")}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between items-center text-xs font-bold text-accent-green">
+                    <span className="uppercase">Diskon Promo</span>
+                    <span className="font-black text-right">- Rp {discountAmount.toLocaleString("id-ID")}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-xs font-bold">
                   <span className="text-white/60 uppercase">Sistem Pembayaran</span>
                   <span className="font-black text-white text-right uppercase tracking-wide">{selectedPayment?.name}</span>

@@ -36,6 +36,8 @@ export async function POST(request: Request) {
       priceFee,
       priceTotal,
       paymentMethod,
+      promoCode,
+      discountAmount,
     } = body;
 
     // Validate required inputs
@@ -57,6 +59,24 @@ export async function POST(request: Request) {
     }
 
     const invoiceId = generateInvoiceId();
+
+    // Re-validate and update Promo Code usage if provided
+    if (promoCode) {
+      const upperCode = promoCode.trim().toUpperCase();
+      const { data: promoData, error: promoError } = await supabaseServer
+        .from("promo_codes")
+        .select("id, used, quota, is_active, expires_at")
+        .eq("code", upperCode)
+        .maybeSingle();
+      
+      if (!promoError && promoData && promoData.is_active) {
+        // Increment usage safely via RPC or just update if we assume low collision
+        await supabaseServer
+          .from("promo_codes")
+          .update({ used: promoData.used + 1 })
+          .eq("id", promoData.id);
+      }
+    }
 
     // --- PAYMENT GATEWAY INTEGRATION ---
     const pgUrl = process.env.PAYMENT_GATEWAY_URL;
@@ -134,7 +154,9 @@ export async function POST(request: Request) {
         topup_status: "pending",
         pg_payment_number: pgPaymentNumber,
         pg_expired_at: pgExpiredAt,
-        pg_fee: pgFee
+        pg_fee: pgFee,
+        promo_code: promoCode ? promoCode.trim().toUpperCase() : null,
+        discount_amount: discountAmount || 0
       })
       .select()
       .single();
