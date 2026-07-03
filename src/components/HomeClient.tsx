@@ -53,6 +53,44 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
     return `${start}****${end}`;
   };
 
+  // Derived sorted list
+  const sortedFlashSales = initialFlashSales ? [...initialFlashSales].sort((a, b) => a.price - b.price) : [];
+
+  const shortenName = (name: string, gameName: string) => {
+    let shortened = name;
+    const gameUpper = gameName.toUpperCase();
+    const nameUpper = shortened.toUpperCase();
+    
+    // Remove exact game name prefix
+    if (nameUpper.startsWith(gameUpper)) {
+      shortened = shortened.substring(gameUpper.length).trim();
+    }
+    
+    // Remove specific common clutter
+    shortened = shortened.replace(/MOBILE LEGENDS:?\s*BANG BANG/gi, "").trim();
+    shortened = shortened.replace(/MOBILE LEGENDS/gi, "").trim();
+    shortened = shortened.replace(/\(INDONESIA\)|\(GLOBAL\)|\(ID\)|\(REGION INDONESIA\)/gi, "").trim();
+    shortened = shortened.replace(/^-+|-+$/g, "").trim();
+    
+    if (!shortened) return name; // fallback
+    
+    // Title Case
+    const words = shortened.toLowerCase().split(' ');
+    for (let i = 0; i < words.length; i++) {
+      if (words[i]) {
+        words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+      }
+    }
+    shortened = words.join(' ');
+    
+    // Fix specific acronyms
+    shortened = shortened.replace(/\bWdp\b/g, "WDP");
+    shortened = shortened.replace(/\bVip\b/g, "VIP");
+    shortened = shortened.replace(/\bMcl\b/g, "MCL");
+    
+    return shortened;
+  };
+
   return (
     <div className="bg-black text-white font-sans min-h-screen flex flex-col antialiased">
       {/* HEADER */}
@@ -62,7 +100,7 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 md:px-6 py-8 space-y-10">
         
         {/* 1. FLASH SALE */}
-        {initialFlashSales && initialFlashSales.length > 0 && (
+        {sortedFlashSales && sortedFlashSales.length > 0 && (
           <section id="flash-sale" className="space-y-5">
             <div className="flex items-center justify-between gap-3.5 flex-wrap">
               <div className="flex items-center gap-2.5 font-black text-lg md:text-xl text-white uppercase tracking-wider">
@@ -77,7 +115,7 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
             </div>
 
             <div className="grid grid-flow-col auto-cols-[230px] gap-4 overflow-x-auto pb-2 scroll-smooth no-scrollbar">
-              {initialFlashSales.map((fs) => (
+              {sortedFlashSales.map((fs) => (
                 <Link key={fs.id} className="relative bg-black border-2 border-white p-4 flex flex-col gap-2.5 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-neo transition-all duration-200 w-[230px] shrink-0 scroll-snap-align-start rounded-none group" href={`/${fs.games.slug}`}>
                   {fs.discount && (
                     <span className="absolute top-3.5 right-3.5 bg-accent-red text-white border-2 border-accent-red text-[11px] font-black px-2.5 py-0.5 select-none uppercase shadow-neo-sm">
@@ -94,8 +132,8 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
                         <div className="w-10 h-10 border-2 border-white bg-black flex items-center justify-center text-xl">{fs.icon}</div>
                       )
                     ) : null}
-                    <div className="text-[13px] font-black leading-[1.3] text-white uppercase group-hover:underline">
-                      {fs.name}
+                    <div className="text-[14px] font-black leading-[1.3] text-white tracking-wide group-hover:underline">
+                      {shortenName(fs.name, fs.games.name)}
                     </div>
                   </div>
                   
