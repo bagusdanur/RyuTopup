@@ -42,17 +42,7 @@ export async function POST(request: Request) {
     } = body;
 
     // Validate required inputs
-    if (
-      !waNumber ||
-      !gameId ||
-      !targetId ||
-      !itemCode ||
-      !itemName ||
-      priceBase === undefined ||
-      priceFee === undefined ||
-      priceTotal === undefined ||
-      !paymentMethod
-    ) {
+    if (!waNumber || !gameId || !targetId || !itemCode || !itemName || !paymentMethod) {
       return NextResponse.json(
         { error: "Mohon lengkapi seluruh data transaksi." },
         { status: 400 }
@@ -61,23 +51,74 @@ export async function POST(request: Request) {
 
     const invoiceId = generateInvoiceId();
 
-    // Re-validate and update Promo Code usage if provided
+    // 1. SECURE SERVER-SIDE VALIDATION OF PRODUCT PRICE
+    const { data: productData, error: productError } = await supabaseServer
+      .from("products")
+      .select("price, buyer_sku_code")
+      .eq("id", itemCode)
+      .single();
+
+    if (productError || !productData) {
+      return NextResponse.json(
+        { error: "Produk tidak ditemukan atau tidak aktif." },
+        { status: 404 }
+      );
+    }
+
+    const validatedPriceBase = Number(productData.price);
+
+    // 2. SECURE SERVER-SIDE VALIDATION OF PAYMENT FEES
+    let validatedPriceFee = 2500; // default VA fee
+    const cleanMethod = paymentMethod.toLowerCase();
+    if (cleanMethod === "qris") {
+      validatedPriceFee = 0;
+    } else if (["shopeepay", "gopay", "dana", "ovo"].includes(cleanMethod)) {
+      validatedPriceFee = cleanMethod === "shopeepay" ? 1200 : 1000;
+    } else if (["bni", "bri", "mandiri", "bsi", "danamon", "cimb", "bnc"].includes(cleanMethod)) {
+      validatedPriceFee = 2500;
+    }
+
+    // 3. SECURE SERVER-SIDE VALIDATION OF PROMO CODES
+    let validatedDiscount = 0;
     if (promoCode) {
       const upperCode = promoCode.trim().toUpperCase();
-      const { data: promoData, error: promoError } = await supabaseServer
+      const { data: promoData } = await supabaseServer
         .from("promo_codes")
-        .select("id, used, quota, is_active, expires_at")
+        .select("*")
         .eq("code", upperCode)
+        .eq("is_active", true)
         .maybeSingle();
 
-      if (!promoError && promoData && promoData.is_active) {
-        // Increment usage safely via RPC or just update if we assume low collision
-        await supabaseServer
-          .from("promo_codes")
-          .update({ used: promoData.used + 1 })
-          .eq("id", promoData.id);
+      if (promoData) {
+        const isNotExpired = !promoData.expires_at || new Date(promoData.expires_at) >= new Date();
+        const hasQuota = promoData.quota === null || promoData.used < promoData.quota;
+        const meetsMin = !promoData.min_purchase || validatedPriceBase >= Number(promoData.min_purchase);
+
+        if (isNotExpired && hasQuota && meetsMin) {
+          if (promoData.discount_amount) {
+            validatedDiscount = Number(promoData.discount_amount);
+          } else if (promoData.discount_percentage) {
+            let percDisc = Math.floor((validatedPriceBase * Number(promoData.discount_percentage)) / 100);
+            if (promoData.max_discount && percDisc > Number(promoData.max_discount)) {
+              percDisc = Number(promoData.max_discount);
+            }
+            validatedDiscount = percDisc;
+          }
+          
+          if (validatedDiscount >= validatedPriceBase) {
+            validatedDiscount = validatedPriceBase - 1; // at least pay Rp 1
+          }
+
+          // Securely update promo quota/usage on checkout creation
+          await supabaseServer
+            .from("promo_codes")
+            .update({ used: promoData.used + 1 })
+            .eq("id", promoData.id);
+        }
       }
     }
+
+    const validatedPriceTotal = Math.max(validatedPriceBase + validatedPriceFee - validatedDiscount, 0);
 
     // --- PAYMENT GATEWAY INTEGRATION ---
     const pgUrl = process.env.PAYMENT_GATEWAY_URL;
@@ -97,12 +138,10 @@ export async function POST(request: Request) {
         mappedMethod = `${mappedMethod}_va`;
         if (mappedMethod === 'cimb_va') mappedMethod = 'cimb_niaga_va';
       } else if (['mandiri', 'bsi', 'danamon'].includes(mappedMethod)) {
-        // Fallback for VA not explicitly listed in PG
         mappedMethod = 'atm_bersama_va';
       }
 
-      // 1. Call PG API (e.g. POST /transactioncreate/{mappedMethod})
-      // Using generic endpoint structure (adaptable to Pakasir/Tripay style)
+      // Call PG API (e.g. POST /transactioncreate/{mappedMethod})
       try {
         const pgResponse = await fetch(`${pgUrl}/transactioncreate/${mappedMethod}`, {
           method: "POST",
@@ -112,14 +151,13 @@ export async function POST(request: Request) {
           body: JSON.stringify({
             project: pgMerchant,
             order_id: invoiceId,
-            amount: Math.max(priceBase - (discountAmount || 0), 0),
+            amount: Math.max(validatedPriceBase - (validatedDiscount || 0), 0),
             api_key: pgApiKey
           })
         });
 
         if (pgResponse.ok) {
           const pgData = await pgResponse.json();
-          // Assuming typical PG response structure:
           if (pgData && pgData.payment) {
             pgPaymentNumber = pgData.payment.payment_number;
             pgExpiredAt = pgData.payment.expired_at;
@@ -127,23 +165,13 @@ export async function POST(request: Request) {
           }
         } else {
           console.error("PG API Error:", await pgResponse.text());
-          // We don't block the transaction completely if PG fails, we just don't have PG data. 
-          // Or you can choose to return an error here.
         }
       } catch (pgErr) {
         console.error("Failed to connect to Payment Gateway:", pgErr);
       }
     }
-    // -----------------------------------
 
-    // --- FETCH PROVIDER SKU CODE ---
-    const { data: productData } = await supabaseServer
-      .from("products")
-      .select("buyer_sku_code")
-      .eq("id", itemCode)
-      .single();
-
-    // Insert new transaction row in the database securely via the server-side service role client
+    // Insert new transaction row in the database securely
     const { data, error } = await supabaseServer
       .from("topup_transactions")
       .insert({
@@ -155,9 +183,9 @@ export async function POST(request: Request) {
         username: username ? username.trim() : null,
         item_name: itemName.trim(),
         item_code: itemCode.trim(),
-        price_base: priceBase,
-        price_fee: priceFee,
-        price_total: priceTotal,
+        price_base: validatedPriceBase,
+        price_fee: validatedPriceFee,
+        price_total: validatedPriceTotal,
         payment_method: paymentMethod.trim(),
         payment_status: "pending",
         topup_status: "pending",
@@ -165,7 +193,7 @@ export async function POST(request: Request) {
         pg_expired_at: pgExpiredAt,
         pg_fee: pgFee,
         promo_code: promoCode ? promoCode.trim().toUpperCase() : null,
-        discount_amount: discountAmount || 0,
+        discount_amount: validatedDiscount,
         buyer_sku_code: productData?.buyer_sku_code || null
       })
       .select()
@@ -179,9 +207,10 @@ export async function POST(request: Request) {
       );
     }
 
+
     // --- SEND INVOICE EMAIL ---
     if (email && email.trim() !== "") {
-      const emailHtml = generateInvoiceEmailHtml(invoiceId, itemName, priceTotal, promoCode, discountAmount, username);
+      const emailHtml = generateInvoiceEmailHtml(invoiceId, itemName, validatedPriceTotal, promoCode, validatedDiscount, username);
       // Fire and forget (don't await) so it doesn't slow down checkout
       sendEmail({
         to: email.trim(),

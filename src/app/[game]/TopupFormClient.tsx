@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TopupHeader from "@/components/TopupHeader";
 import TopupFooter from "@/components/TopupFooter";
-import { FaCheckCircle, FaSpinner, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { FaSpinner } from "react-icons/fa";
+
+// Import modular subcomponents
+import TopupProductInfo from "@/components/topup/TopupProductInfo";
+import TopupCustomerForm from "@/components/topup/TopupCustomerForm";
+import TopupItemGrid from "@/components/topup/TopupItemGrid";
+import TopupPaymentList from "@/components/topup/TopupPaymentList";
+import TopupSummarySticky from "@/components/topup/TopupSummarySticky";
+import TopupConfirmModal from "@/components/topup/TopupConfirmModal";
 
 type PaymentMethod = {
   id: string;
@@ -136,7 +144,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const [emailError, setEmailError] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    "QRIS": true,
+    QRIS: true,
     "E-Wallet": false,
     "Convenience Store": false,
     "Virtual Account": false,
@@ -149,13 +157,10 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
 
   const selectedItem = data.items.find((i: any) => i.id === activeItem);
   const selectedPayment = PAYMENT_METHODS.find((p) => p.id === activePayment);
-  
   const totalPrice = Math.max((selectedItem?.price || 0) + (selectedPayment?.fee || 0) - discountAmount, 0);
 
-  // Filter out unwanted items like "CEK USERNAME"
   const validItems = data.items.filter((item: any) => !item.name.toUpperCase().includes("CEK USERNAME"));
 
-  // Fallback check for passes/bundles if DB isPass is false
   const isItemPass = (item: any) => {
     if (item.isPass) return true;
     const nameUpper = item.name.toUpperCase();
@@ -168,14 +173,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const shortenName = (name: string) => {
     let shortened = name;
 
-    // 0. Shorten specific long pass/item names to standard abbreviations
     shortened = shortened.replace(/WEEKLY DIAMOND PASS/gi, "WDP");
     shortened = shortened.replace(/EXPRESS SUPPLY PASS/gi, "Supply Pass");
     shortened = shortened.replace(/STARLIGHT PLUS MEMBER/gi, "Starlight Plus");
     shortened = shortened.replace(/STARLIGHT MEMBER/gi, "Starlight");
     shortened = shortened.replace(/STARLIGHT MEMBERSHIP/gi, "Starlight");
     
-    // 1. Remove specific game names and prefixes aggressively
     shortened = shortened.replace(/HONKAI:?\s*STAR\s*RAIL/gi, "");
     shortened = shortened.replace(/HONKAI\s*STARRAIL/gi, "");
     shortened = shortened.replace(/HSR/gi, "");
@@ -190,15 +193,11 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     shortened = shortened.replace(/FREE\s*FIRE/gi, "");
     shortened = shortened.replace(/FF/gi, "");
 
-    // 2. Remove common region suffixes or trash symbols
     shortened = shortened.replace(/\(INDONESIA\)|\(GLOBAL\)|\(ID\)|\(REGION INDONESIA\)/gi, "");
-    
-    // 3. Trim leftover dashes, colons, spaces from both ends
     shortened = shortened.replace(/^[\s\-:+]+|[\s\-:+]+$/g, "").trim();
 
-    if (!shortened) return name; // fallback if empty
+    if (!shortened) return name;
     
-    // Convert to Title Case for better readability
     const words = shortened.toLowerCase().split(' ');
     for (let i = 0; i < words.length; i++) {
       if (words[i]) {
@@ -207,7 +206,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     }
     shortened = words.join(' ');
     
-    // Fix specific uppercase acronyms
     shortened = shortened.replace(/\bWdp\b/g, "WDP");
     shortened = shortened.replace(/\bVip\b/g, "VIP");
     shortened = shortened.replace(/\bMcl\b/g, "MCL");
@@ -239,7 +237,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     setNicknameError(null);
     setNickname(null);
 
-    // Get the first field for generic ID, or userId/zoneId specifically
     let targetId = accountData.userId ? `${accountData.userId}(${accountData.zoneId||''})` : Object.values(accountData)[0]?.trim();
     
     if (!targetId || targetId.length < 3) {
@@ -314,26 +311,21 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   };
 
   const handleCheckoutClick = async () => {
-    // Reset errors
     setFieldErrors({});
     setWaError(null);
     setEmailError(null);
     setCheckoutError(null);
 
-    // Check item selection (return early to satisfy TS compiler)
     if (!selectedItem) {
       setCheckoutError("Silakan pilih nominal top up terlebih dahulu!");
       return;
     }
-    // Check payment selection (return early to satisfy TS compiler)
     if (!selectedPayment) {
       setCheckoutError("Silakan pilih metode pembayaran terlebih dahulu!");
       return;
     }
 
     let hasError = false;
-    
-    // Check fields
     const errors: Record<string, string> = {};
     data.fields.forEach((f: any) => {
       const val = accountData[f.id]?.trim();
@@ -343,7 +335,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       }
     });
 
-    // WhatsApp validation
     const cleanWa = waNumber.trim().replace(/\D/g, "");
     if (!cleanWa) {
       setWaError("Nomor WhatsApp tidak boleh kosong");
@@ -353,7 +344,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       hasError = true;
     }
     
-    // Email validation
     if (!email.trim()) {
       setEmailError("ALAMAT EMAIL TIDAK BOLEH KOSONG");
       hasError = true;
@@ -362,7 +352,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       hasError = true;
     }
 
-    // Input values validation (only numbers for numeric fields)
     const numericRegex = /^\d+$/;
     if (accountData.userId && !numericRegex.test(accountData.userId.trim())) {
       errors.userId = "User ID harus berupa angka!";
@@ -395,13 +384,11 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       return;
     }
 
-    // Automatically check nickname if not checked yet
     if (!nickname) {
       setNicknameError(null);
       setIsLoadingNickname(true);
       setCheckoutError(null);
 
-      // Get the first field for generic ID, or userId/zoneId specifically
       let targetId = accountData.userId ? `${accountData.userId}(${accountData.zoneId||''})` : Object.values(accountData)[0]?.trim();
       
       try {
@@ -418,7 +405,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
         }
         
         setNickname(result.nickname);
-        // Show confirmation modal since check succeeded
         setShowConfirmModal(true);
       } catch (err: any) {
         setNicknameError(err.message);
@@ -428,15 +414,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
         setIsLoadingNickname(false);
       }
     } else {
-      // If nickname is already verified, proceed directly
       setShowConfirmModal(true);
     }
   };
 
-
   const executeCheckout = async () => {
     setShowConfirmModal(false);
-    
     if (!selectedItem || !selectedPayment) return;
 
     setIsSubmitting(true);
@@ -444,14 +427,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
 
     const cleanWa = waNumber.trim().replace(/\D/g, "");
 
-    // Format Target ID dynamically to match the specific game standards
     let formattedTargetId = "";
     if (gameId === "mobile-legends" || gameId === "magic-chess-gogo") {
       formattedTargetId = `${accountData.userId.trim()} (${accountData.zoneId.trim()})`;
     } else if (gameId === "genshin-impact") {
       formattedTargetId = `${accountData.uid.trim()} (${accountData.server.trim()})`;
     } else {
-      // Valorant, PUBG, Free Fire, Honor of Kings
       formattedTargetId = Object.values(accountData)[0]?.trim() || "";
     }
 
@@ -484,7 +465,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
         throw new Error(result.error || "Gagal melakukan checkout. Silakan coba lagi.");
       }
 
-      // Redirect to the dedicated invoice page
       router.push(`/pesanan/${result.invoiceId}`);
     } catch (err: any) {
       setCheckoutError(err.message);
@@ -493,7 +473,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     }
   };
 
-  // Group payment methods
   const qrisMethods = PAYMENT_METHODS.filter((m) => m.group === "QRIS");
   const eWalletMethods = PAYMENT_METHODS.filter((m) => m.group === "E-Wallet");
   const convenienceMethods = PAYMENT_METHODS.filter((m) => m.group === "Convenience Store");
@@ -501,14 +480,11 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
 
   return (
     <div className="bg-black text-white font-sans min-h-screen flex flex-col antialiased">
-      {/* HEADER */}
       <TopupHeader />
 
       {/* BREADCRUMB */}
       <div className="hidden md:flex w-full max-w-6xl mx-auto px-4 md:px-6 pt-6 text-[12.5px] text-white/70 items-center gap-1.5 select-none font-bold">
-        <Link href="/" className="hover:underline">
-          Beranda
-        </Link>
+        <Link href="/" className="hover:underline">Beranda</Link>
         <span>/</span>
         <span className="text-white uppercase tracking-wider">{data.name}</span>
       </div>
@@ -526,15 +502,9 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
           </div>
           <h1 className="text-[19px] md:text-2xl font-black text-white leading-tight uppercase tracking-wider truncate md:overflow-visible md:whitespace-normal">{data.name}</h1>
           <div className="hidden md:flex gap-2 mt-2.5 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 bg-black border-2 border-white px-3 py-1 text-[11px] font-black text-white uppercase tracking-wider">
-              Layanan 24/7
-            </span>
-            <span className="inline-flex items-center gap-1.5 bg-black border-2 border-white px-3 py-1 text-[11px] font-black text-white uppercase tracking-wider">
-              Aman &amp; Terpercaya
-            </span>
-            <span className="inline-flex items-center gap-1.5 bg-black border-2 border-white px-3 py-1 text-[11px] font-black text-white uppercase tracking-wider">
-              Proses Otomatis
-            </span>
+            <span className="inline-flex items-center gap-1.5 bg-black border-2 border-white px-3 py-1 text-[11px] font-black text-white uppercase tracking-wider">Layanan 24/7</span>
+            <span className="inline-flex items-center gap-1.5 bg-black border-2 border-white px-3 py-1 text-[11px] font-black text-white uppercase tracking-wider">Aman &amp; Terpercaya</span>
+            <span className="inline-flex items-center gap-1.5 bg-black border-2 border-white px-3 py-1 text-[11px] font-black text-white uppercase tracking-wider">Proses Otomatis</span>
           </div>
         </div>
       </div>
@@ -542,425 +512,98 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       {/* LAYOUT BODY */}
       <div className="w-full max-w-6xl mx-auto px-4 md:px-6 pb-28 lg:pb-16 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 md:gap-8 items-start">
         
-        {/* LEFT COLUMN: FORM DETAILS */}
+        {/* LEFT COLUMN */}
         <div className="flex flex-col gap-5">
+          <TopupProductInfo gameName={data.name} />
           
-          {/* Panel 1: Product Info */}
-          <div className="order-last lg:order-first bg-black border-2 border-white p-5 space-y-3.5 rounded-none shadow-neo">
-            <h3 className="text-xs md:text-sm font-black text-white uppercase tracking-wider border-b-2 border-white pb-2">Informasi Produk</h3>
-            <p className="text-[12.5px] md:text-[13.5px] text-white/80 leading-relaxed font-bold">
-              Top up Diamond {data.name} hanya dalam hitungan detik! Cukup masukan data akun Anda, pilih jumlah Diamond yang Anda inginkan, selesaikan pembayaran, dan item akan langsung masuk ke akun Anda secara otomatis.
-            </p>
-            <div className="text-[11.5px] md:text-[12.5px] text-white bg-black border-2 border-white p-3.5 font-black uppercase tracking-wider">
-              ⚠️ Khusus Server Original, tidak bisa isi Advance Server. Untuk WDP (Weekly Diamond Pass), pastikan cek slot tersisa terlebih dahulu sebelum top up!
-            </div>
-          </div>
+          <TopupCustomerForm
+            fields={data.fields}
+            accountData={accountData}
+            fieldErrors={fieldErrors}
+            nickname={nickname}
+            isLoadingNickname={isLoadingNickname}
+            nicknameError={nicknameError}
+            onInputChange={handleInputChange}
+            onCheckNickname={handleCheckNickname}
+          />
 
-          {/* Panel 2: Account fields */}
+          <TopupItemGrid
+            passes={passes}
+            regularItems={regularItems}
+            activeItem={activeItem}
+            setActiveItem={setActiveItem}
+            setCheckoutError={setCheckoutError}
+            shortenName={shortenName}
+          />
+
+          <TopupPaymentList
+            qrisMethods={qrisMethods}
+            eWalletMethods={eWalletMethods}
+            convenienceMethods={convenienceMethods}
+            vaMethods={vaMethods}
+            expandedGroups={expandedGroups}
+            setExpandedGroups={setExpandedGroups}
+            activePayment={activePayment}
+            setActivePayment={setActivePayment}
+            selectedItem={selectedItem}
+            setCheckoutError={setCheckoutError}
+          />
+
+          {/* Panel 5: Contacts */}
           <div className="bg-black border-2 border-white p-5 space-y-4 rounded-none shadow-neo">
             <h3 className="text-sm md:text-base font-black text-white flex items-center gap-3 uppercase tracking-wider">
-              <div className="w-6 h-6 border-2 border-white bg-white text-black flex items-center justify-center font-black shrink-0 text-[12px]">
-                1
-              </div>
-              <span>Informasi Pelanggan</span>
+              <div className="w-6 h-6 border-2 border-white bg-white text-black flex items-center justify-center font-black shrink-0 text-[12px]">4</div>
+              <span>Informasi Kontak</span>
             </h3>
             
-            {/* Dynamic account fields */}
-            <div className={`grid gap-3.5 ${data.fields.length >= 2 ? "grid-cols-2" : "grid-cols-1"}`}>
-              {data.fields.map((field: any) => (
-                <div key={field.id} className="flex flex-col gap-2" data-error={fieldErrors[field.id] ? "true" : undefined}>
-                  <label htmlFor={field.id} className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">{field.label}</label>
-                  {field.type === "select" ? (
-                    <select
-                      id={field.id}
-                      value={accountData[field.id] || ""}
-                      onChange={(e) => handleInputChange(field.id, e.target.value)}
-                      className={`bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none focus:shadow-neo transition-all cursor-pointer w-full rounded-none ${
-                        fieldErrors[field.id] ? "border-rose-500 text-rose-500" : ""
-                      }`}
-                    >
-                      <option value="" disabled className="text-white/50">{field.placeholder}</option>
-                      {field.options?.map((opt: string) => (
-                        <option key={opt} value={opt} className="bg-black text-white">
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      id={field.id}
-                      type="text"
-                      placeholder={field.placeholder}
-                      value={accountData[field.id] || ""}
-                      onChange={(e) => handleInputChange(field.id, e.target.value)}
-                      className={`bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none placeholder-white/40 focus:shadow-neo transition-all w-full rounded-none ${
-                        fieldErrors[field.id] ? "border-rose-500 placeholder-rose-500/50" : ""
-                      }`}
-                    />
-                  )}
-                  {fieldErrors[field.id] && (
-                    <span className="text-[10px] text-rose-400 font-extrabold uppercase tracking-wide">{fieldErrors[field.id]}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Nickname Check */}
-            <div className="pt-1">
-              <button
-                onClick={handleCheckNickname}
-                disabled={isLoadingNickname}
-                className="bg-accent border-2 border-accent text-black px-4 py-2 text-xs font-black uppercase tracking-wider shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50"
-              >
-                {isLoadingNickname ? "Mengecek..." : "Cek Nickname"}
-              </button>
-              
-              {nicknameError && (
-                <div className="mt-2 text-[11px] text-rose-500 font-bold uppercase">{nicknameError}</div>
-              )}
-              {nickname && (
-                <div className="mt-2 bg-green-500/10 border-2 border-green-500 p-2.5 flex flex-col animate-fadeIn">
-                  <span className="text-[10px] text-green-500 font-black uppercase tracking-wider mb-0.5">Nickname Ditemukan:</span>
-                  <span className="text-sm text-green-400 font-bold">{nickname}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Global Whatsapp Field */}
-            <div className="flex flex-col gap-2 pt-2" data-error={waError ? "true" : undefined}>
-              <label htmlFor="wa" className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">Nomor WhatsApp</label>
-              <input
-                id="wa"
-                type="text"
-                placeholder="08xxxxxxxxxx"
-                value={waNumber}
-                onChange={(e) => handleWaChange(e.target.value)}
-                className={`bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none placeholder-white/40 focus:shadow-neo transition-all w-full rounded-none ${
-                  waError ? "border-rose-500 placeholder-rose-500/50" : ""
-                }`}
-              />
-              {waError && (
-                <span className="text-[10px] text-rose-400 font-extrabold uppercase tracking-wide">{waError}</span>
-              )}
-            </div>
-
-            {/* Global Email Field */}
-            <div className="flex flex-col gap-2 pt-2" data-error={emailError ? "true" : undefined}>
-              <label htmlFor="email" className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">
-                Alamat Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="nama@email.com (Untuk Invoice)"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setEmailError(null); setCheckoutError(null); }}
-                className={`bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none placeholder-white/40 focus:shadow-neo transition-all w-full rounded-none ${
-                  emailError ? "border-rose-500 placeholder-rose-500/50" : ""
-                }`}
-              />
-              {emailError && (
-                <span className="text-[10px] text-rose-400 font-extrabold uppercase tracking-wide">{emailError}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Panel 3: Nominal cards selection */}
-          <div className="bg-black border-2 border-white p-5 space-y-4 rounded-none shadow-neo">
-            <h3 className="text-sm md:text-base font-black text-white flex items-center gap-3 uppercase tracking-wider">
-              <div className="w-6 h-6 border-2 border-white bg-white text-black flex items-center justify-center font-black shrink-0 text-[12px]">
-                2
-              </div>
-              <span>Pilih Nominal Top Up</span>
-            </h3>
-
-            {passes.length > 0 && (
-              <div className="space-y-3 mb-6">
-                <div className="text-[10px] font-black uppercase text-white/50 tracking-widest">
-                  ✦ Membership / Pass
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {passes.map((item: any) => {
-                    const isSelected = activeItem === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setActiveItem(item.id);
-                          setCheckoutError(null);
-                        }}
-                        className={`relative border-2 p-3.5 flex flex-col items-center gap-2 min-h-[130px] cursor-pointer transition-all text-center overflow-hidden select-none rounded-none shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
-                          isSelected
-                            ? "bg-accent border-accent shadow-none"
-                            : "bg-black border-white/60 hover:border-white"
-                        }`}
-                      >
-                        {/* Discount badge top-left */}
-                        {item.discount && (
-                          <span className={`absolute top-0 left-0 text-[8px] font-black px-2 py-0.5 uppercase tracking-wider ${
-                            isSelected ? "bg-black text-accent" : "bg-accent-red text-white"
-                          }`}>
-                            {item.discount}
-                          </span>
-                        )}
-
-                        {/* Icon focal point */}
-                        <span className="text-3xl leading-none mt-1">
-                          {typeof item.icon === "string" && item.icon.startsWith("http") ? (
-                            <img src={item.icon} alt="" className="w-8 h-8 object-contain mx-auto" />
-                          ) : (
-                            item.icon
-                          )}
-                        </span>
-
-                        {/* Name */}
-                        <span className={`text-[12px] leading-tight font-black uppercase tracking-wide line-clamp-2 text-center w-full ${
-                          isSelected ? "text-black" : "text-white"
-                        }`}>
-                          {shortenName(item.name)}
-                        </span>
-
-                        {/* Divider */}
-                        <span className={`w-full border-t ${ isSelected ? "border-black/30" : "border-white/20" }`} />
-
-                        {/* Price zone */}
-                        <div className="flex flex-col items-center gap-0.5">
-                          {item.original_price && item.original_price > item.price && (
-                            <span className={`text-[9px] font-bold line-through ${ isSelected ? "text-black/50" : "text-white/35" }`}>
-                              Rp {item.original_price.toLocaleString("id-ID")}
-                            </span>
-                          )}
-                          <span className={`text-[11px] font-black leading-none font-mono ${
-                            isSelected ? "text-black" : "text-white/80"
-                          }`}>
-                            Rp {item.price.toLocaleString("id-ID")}
-                          </span>
-                        </div>
-
-                        {/* Selected checkmark */}
-                        {isSelected && (
-                          <span className="absolute top-1.5 right-2 text-[10px] font-black text-black">✓</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {regularItems.length > 0 && (
-              <div className="space-y-3">
-                {passes.length > 0 && (
-                  <div className="text-[10px] font-black uppercase text-white/50 tracking-widest">
-                    ✦ Nominal Top Up
-                  </div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2" data-error={waError ? "true" : undefined}>
+                <label htmlFor="waNumber" className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">Nomor WhatsApp</label>
+                <input
+                  id="waNumber"
+                  type="text"
+                  placeholder="Contoh: 081234567890"
+                  value={waNumber}
+                  onChange={(e) => handleWaChange(e.target.value)}
+                  className={`bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none placeholder-white/40 focus:shadow-neo transition-all rounded-none ${waError ? "border-rose-500 placeholder-rose-500/50" : ""}`}
+                />
+                {waError ? (
+                  <span className="text-[10px] text-rose-400 font-extrabold uppercase tracking-wide">{waError}</span>
+                ) : (
+                  <p className="text-[10.5px] text-white/50 leading-relaxed font-semibold uppercase tracking-wide">
+                    Nomor WhatsApp ini digunakan untuk mengirimkan rincian transaksi serta bukti pembayaran Anda.
+                  </p>
                 )}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {regularItems.map((item: any) => {
-                    const isSelected = activeItem === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setActiveItem(item.id);
-                          setCheckoutError(null);
-                        }}
-                        className={`relative border-2 p-3.5 flex flex-col items-center gap-2 min-h-[130px] cursor-pointer transition-all text-center overflow-hidden select-none rounded-none shadow-neo-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none ${
-                          isSelected
-                            ? "bg-accent border-accent shadow-none"
-                            : "bg-black border-white/60 hover:border-white"
-                        }`}
-                      >
-                        {/* Discount badge top-left */}
-                        {item.discount && (
-                          <span className={`absolute top-0 left-0 text-[8px] font-black px-2 py-0.5 uppercase ${
-                            isSelected ? "bg-black text-accent" : "bg-accent-red text-white"
-                          }`}>
-                            {item.discount}
-                          </span>
-                        )}
-
-                        {/* Icon focal point — big */}
-                        <span className="text-3xl leading-none mt-1">
-                          {typeof item.icon === "string" && item.icon.startsWith("http") ? (
-                            <img src={item.icon} alt="" className="w-8 h-8 object-contain mx-auto" />
-                          ) : (
-                            item.icon
-                          )}
-                        </span>
-
-                        {/* Name */}
-                        <span className={`text-[12px] leading-tight font-black uppercase tracking-wide line-clamp-2 text-center w-full ${
-                          isSelected ? "text-black" : "text-white"
-                        }`}>
-                          {shortenName(item.name)}
-                        </span>
-
-                        {/* Divider */}
-                        <span className={`w-full border-t ${ isSelected ? "border-black/30" : "border-white/20" }`} />
-
-                        {/* Price zone with original_price strikethrough */}
-                        <div className="flex flex-col items-center gap-0.5">
-                          {item.original_price && item.original_price > item.price && (
-                            <span className={`text-[9px] font-bold line-through ${ isSelected ? "text-black/50" : "text-white/35" }`}>
-                              Rp {item.original_price.toLocaleString("id-ID")}
-                            </span>
-                          )}
-                          <span className={`text-[11px] font-black leading-none font-mono ${
-                            isSelected ? "text-black" : "text-white/80"
-                          }`}>
-                            Rp {item.price.toLocaleString("id-ID")}
-                          </span>
-                        </div>
-
-                        {/* Selected checkmark */}
-                        {isSelected && (
-                          <span className="absolute top-1.5 right-2 text-[10px] font-black text-black">✓</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
-            )}
-          </div>
 
-          {/* Panel 4: Payment Methods */}
-          <div className="bg-black border-2 border-white p-5 space-y-4 rounded-none shadow-neo">
-            <h3 className="text-sm md:text-base font-black text-white flex items-center gap-3 uppercase tracking-wider">
-              <div className="w-6 h-6 border-2 border-white bg-white text-black flex items-center justify-center font-black shrink-0 text-[12px]">
-                3
+              <div className="flex flex-col gap-2" data-error={emailError ? "true" : undefined}>
+                <label htmlFor="email" className="text-[11.5px] md:text-[12.5px] font-black text-white uppercase tracking-wider">Alamat Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Contoh: ryu@topup.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailError(null);
+                    setCheckoutError(null);
+                  }}
+                  className={`bg-black text-white border-2 border-white px-4 py-3 text-[13px] md:text-[13.5px] font-bold outline-none placeholder-white/40 focus:shadow-neo transition-all rounded-none ${emailError ? "border-rose-500 placeholder-rose-500/50" : ""}`}
+                />
+                {emailError ? (
+                  <span className="text-[10px] text-rose-400 font-extrabold uppercase tracking-wide">{emailError}</span>
+                ) : (
+                  <p className="text-[10.5px] text-white/50 leading-relaxed font-semibold uppercase tracking-wide">
+                    Bukti tagihan elektronik / invoice akan dikirim ke alamat email yang Anda masukkan di atas.
+                  </p>
+                )}
               </div>
-              <span>Pilih Pembayaran</span>
-            </h3>
-
-            <div className="space-y-3">
-              {[
-                { name: "QRIS", methods: qrisMethods },
-                { name: "E-Wallet", methods: eWalletMethods },
-                { name: "Convenience Store", methods: convenienceMethods },
-                { name: "Virtual Account", methods: vaMethods },
-              ].filter(group => group.methods.length > 0).map((group) => {
-                const isOpen = expandedGroups[group.name];
-                const activeInGroup = group.methods.some((m) => m.id === activePayment);
-                
-                return (
-                  <div key={group.name} className="border-2 border-white rounded-none overflow-hidden bg-black">
-                    {/* ACCORDION HEADER */}
-                    <div
-                      onClick={() => {
-                        setExpandedGroups((prev) => ({
-                          ...prev,
-                          [group.name]: !prev[group.name],
-                        }));
-                      }}
-                      className={`flex items-center justify-between p-3.5 cursor-pointer select-none transition-colors border-white ${
-                        isOpen ? "bg-white text-black border-b-2" : "bg-black text-white hover:bg-white/5"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className={`w-2.5 h-2.5 border border-current ${activeInGroup ? "bg-accent-orange border-accent-orange" : "bg-transparent"}`}></span>
-                        <span className="text-[11.5px] md:text-[13px] font-black uppercase tracking-wider">{group.name}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        {/* Logo previews (hide on open) */}
-                        {!isOpen && (
-                          <div className="flex items-center gap-1.5 opacity-80">
-                            {group.methods.slice(0, 3).map((m) => (
-                              <img key={m.id} src={m.logo} alt={m.name} className="h-3 md:h-3.5 w-auto object-contain max-w-[45px]" />
-                            ))}
-                            {group.methods.length > 3 && (
-                              <span className="text-[8.5px] font-black text-black bg-white px-1.5 py-0.5 border border-white">+{group.methods.length - 3}</span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {isOpen ? (
-                          <FaChevronUp className="text-[10px] md:text-[11.5px]" />
-                        ) : (
-                          <FaChevronDown className="text-[10px] md:text-[11.5px]" />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ACCORDION CONTENT */}
-                    <div
-                      className={`transition-all duration-200 ease-in-out overflow-hidden ${
-                        isOpen ? "max-h-[500px] p-4 opacity-100 bg-black border-t-0" : "max-h-0 opacity-0 pointer-events-none"
-                      }`}
-                    >
-                      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-3">
-                        {group.methods.map((method) => {
-                          const isSelected = activePayment === method.id;
-                          return (
-                            <button
-                              key={method.id}
-                              onClick={() => {
-                                setActivePayment(method.id);
-                                setCheckoutError(null);
-                                setExpandedGroups((prev) => ({ ...prev, [group.name]: true }));
-                              }}
-                              className={`border-2 rounded-none p-3 flex flex-col items-center justify-center gap-1.5 hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] shadow-[2px_2px_0px_white] transition-all text-center cursor-pointer relative min-h-[70px] ${
-                                isSelected ? "bg-accent border-accent text-black font-black shadow-none" : "bg-black border-white text-white"
-                              }`}
-                            >
-                              <img src={method.logo} alt={method.name} className={`h-5 w-auto object-contain max-w-[65px] mb-0.5 ${isSelected ? "" : "opacity-80"}`} />
-                              <div className="flex flex-col items-center leading-none">
-                                <span className={`text-[9.5px] md:text-[10px] font-black uppercase ${isSelected ? "text-black" : "text-white/80"}`}>{method.name}</span>
-                                <span className={`text-[8.5px] md:text-[9.5px] font-bold mt-1 ${isSelected ? "text-black/80" : "text-white/40"}`}>
-                                  {selectedItem 
-                                    ? `Rp ${(selectedItem.price + method.fee).toLocaleString("id-ID")}`
-                                    : `+Rp ${method.fee.toLocaleString("id-ID")}`
-                                  }
-                                </span>
-                              </div>
-                              {isSelected && (
-                                <span className="absolute top-1 right-1.5 text-[8.5px] font-black bg-black text-accent-orange px-1 py-0 border border-black uppercase">OK</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
 
-          {/* Panel 5: Promo Code */}
-          <div className="bg-black border-2 border-white p-5 space-y-3.5 rounded-none shadow-neo">
-            <h3 className="text-xs md:text-sm font-black text-white uppercase tracking-wider">Kode Promo</h3>
-            <div className="flex gap-3">
-              <input
-                type="text"
-                placeholder="Masukkan kode voucher"
-                value={voucherCode}
-                onChange={(e) => {
-                  setVoucherCode(e.target.value);
-                  setPromoError(null);
-                  setPromoSuccess(null);
-                  if (discountAmount > 0) setDiscountAmount(0); // reset if modified
-                }}
-                className="bg-black border-2 border-white text-white rounded-none px-4 py-2.5 text-[13px] md:text-[13.5px] focus:shadow-neo outline-none transition-all placeholder-white/40 flex-1 font-bold uppercase"
-              />
-              <button 
-                onClick={handleApplyPromo}
-                disabled={isCheckingPromo}
-                className="bg-accent border-2 border-accent text-black rounded-none px-5 font-black text-xs md:text-sm select-none transition-all shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none uppercase tracking-wider cursor-pointer disabled:opacity-50"
-              >
-                {isCheckingPromo ? "Cek..." : "Pakai"}
-              </button>
-            </div>
-            {promoError && <div className="text-[11px] text-rose-500 font-bold uppercase tracking-wide">{promoError}</div>}
-            {promoSuccess && <div className="text-[11px] text-accent-green font-bold uppercase tracking-wide">{promoSuccess}</div>}
-          </div>
-
-          {/* Panel 6: FAQ Accordion */}
+          {/* Panel 6: FAQs */}
           <div className="bg-black border-2 border-white p-5 space-y-1.5 rounded-none shadow-neo">
             <h3 className="text-xs md:text-sm font-black text-white uppercase tracking-wider mb-2">Pertanyaan yang Sering Diajukan</h3>
-            
             {FAQS.map((faq, index) => {
               const isOpen = openFaqIndex === index;
               return (
@@ -982,14 +625,11 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                       <path d="M12 5v14M5 12h14" />
                     </svg>
                   </div>
-                  
                   <div
                     className="transition-all duration-200 ease-in-out overflow-hidden"
                     style={{ maxHeight: isOpen ? "300px" : "0px", opacity: isOpen ? 1 : 0 }}
                   >
-                    <p className="text-[12px] md:text-[13px] text-white/80 pb-4 leading-relaxed font-bold">
-                      {faq.a}
-                    </p>
+                    <p className="text-[12px] md:text-[13px] text-white/80 pb-4 leading-relaxed font-bold">{faq.a}</p>
                   </div>
                 </div>
               );
@@ -998,83 +638,26 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
 
         </div>
 
-        {/* RIGHT COLUMN: STICKY ORDER SUMMARY */}
-        <aside className="lg:sticky lg:top-[94px] w-full">
-          <div className="bg-black border-3 border-white p-6 space-y-5 rounded-none shadow-neo-lg">
-            <h3 className="text-sm font-black text-white uppercase tracking-wider pb-3 border-b-2 border-dashed border-white">Ringkasan Pesanan</h3>
-            
-            <div className="flex justify-between items-center text-[13.5px] font-bold">
-              <span className="text-white/60 uppercase text-xs">Produk</span>
-              <span className="text-white uppercase tracking-wider">{data.name}</span>
-            </div>
-
-            <div className="flex justify-between items-start text-[13.5px] gap-4 font-bold">
-              <span className="text-white/60 uppercase text-xs shrink-0">Item</span>
-              <span className="text-white text-right leading-tight uppercase tracking-wide">
-                {selectedItem ? selectedItem.name : "Belum memilih nominal"}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-[13.5px] font-bold">
-              <span className="text-white/60 uppercase text-xs">Harga</span>
-              <span className="text-white">
-                {selectedItem ? `Rp ${selectedItem.price.toLocaleString("id-ID")}` : "-"}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-[13.5px] font-bold">
-              <span className="text-white/60 uppercase text-xs">Biaya Admin</span>
-              <span className="text-white">
-                {selectedPayment ? `Rp ${selectedPayment.fee.toLocaleString("id-ID")}` : "Rp 0"}
-              </span>
-            </div>
-
-            {discountAmount > 0 && (
-              <div className="flex justify-between items-center text-[13.5px] font-bold text-accent-green">
-                <span className="uppercase text-xs">Diskon Promo</span>
-                <span>- Rp {discountAmount.toLocaleString("id-ID")}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between items-center text-[14.5px] pt-4 border-t-2 border-dashed border-white font-black">
-              <span className="text-white/70 uppercase text-xs">Total Bayar</span>
-              <span className="text-[20px] text-white font-mono">
-                {selectedItem ? `Rp ${totalPrice.toLocaleString("id-ID")}` : "-"}
-              </span>
-            </div>
-
-            {checkoutError && (
-              <div className="flex items-start gap-2.5 text-xs text-white bg-black border-2 border-white p-3.5 rounded-none shadow-neo-sm animate-fadeIn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-                <span className="font-bold leading-relaxed text-left uppercase tracking-wide">{checkoutError}</span>
-              </div>
-            )}
-
-            <button
-              onClick={handleCheckoutClick}
-              className="w-full mt-3 bg-accent border-2 border-accent text-black py-4 font-black text-sm shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all uppercase tracking-widest disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
-              disabled={!selectedItem || isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <FaSpinner className="animate-spin w-4 h-4" />
-                  Memproses...
-                </>
-              ) : (
-                "Beli Sekarang"
-              )}
-            </button>
-
-            <div className="flex items-center gap-2 text-[11px] text-white/50 pt-1 justify-center font-bold uppercase tracking-wider">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-white shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
-              Transaksi Aman &amp; Terenkripsi
-            </div>
-            
-            <p className="text-[11px] text-white/50 leading-relaxed pt-3 border-t-2 border-white/20 font-bold uppercase tracking-wide">
-              Halaman konfirmasi akan muncul setelah tombol ditekan. Pastikan User ID dan Server sudah benar sebelum melakukan transaksi.
-            </p>
-          </div>
-        </aside>
+        {/* RIGHT COLUMN */}
+        <TopupSummarySticky
+          gameName={data.name}
+          selectedItem={selectedItem}
+          selectedPayment={selectedPayment}
+          discountAmount={discountAmount}
+          totalPrice={totalPrice}
+          checkoutError={checkoutError}
+          isSubmitting={isSubmitting}
+          isLoadingNickname={isLoadingNickname}
+          onCheckoutClick={handleCheckoutClick}
+          voucherCode={voucherCode}
+          setVoucherCode={setVoucherCode}
+          promoError={promoError}
+          setPromoError={setPromoError}
+          promoSuccess={promoSuccess}
+          setPromoSuccess={setPromoSuccess}
+          onApplyPromo={handleApplyPromo}
+          isCheckingPromo={isCheckingPromo}
+        />
 
       </div>
 
@@ -1092,13 +675,13 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
           </div>
           <button
             onClick={handleCheckoutClick}
-            disabled={isSubmitting}
-            className="bg-accent border-2 border-accent text-black px-6 py-3.5 font-black text-xs md:text-sm shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none uppercase tracking-wider transition-all min-w-[140px] rounded-none cursor-pointer"
+            disabled={isSubmitting || isLoadingNickname}
+            className="bg-accent border-2 border-accent text-black px-6 py-3.5 font-black text-xs md:text-sm shadow-neo-orange hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none uppercase tracking-wider transition-all min-w-[140px] rounded-none cursor-pointer flex items-center justify-center gap-1.5"
           >
-            {isSubmitting ? (
+            {isSubmitting || isLoadingNickname ? (
               <>
                 <FaSpinner className="animate-spin w-3.5 h-3.5" />
-                Memproses...
+                {isLoadingNickname ? "Mengecek..." : "Memproses..."}
               </>
             ) : (
               "Beli Sekarang"
@@ -1108,101 +691,20 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       )}
 
       {/* CONFIRMATION MODAL */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-fadeIn">
-          <div className="bg-black border-3 border-white rounded-none p-6 w-full max-w-sm shadow-neo-lg space-y-5 text-left">
-            <div className="text-center space-y-1.5 mb-1">
-              <h3 className="text-base font-black text-white tracking-wide uppercase">Detail Pesanan</h3>
-              <p className="text-[11.5px] text-white/70 leading-normal font-semibold">
-                Jika Data Pesanan Kamu Sudah Benar Klik <span className="text-white font-bold">Beli Sekarang</span>
-              </p>
-            </div>
-
-            {/* Section 1: Data Player */}
-            <div className="space-y-2">
-              <div className="flex items-center text-xs font-black text-white uppercase tracking-wider">
-                <span className="mr-1.5 font-black">—</span> Data Player
-              </div>
-              <div className="bg-black border-2 border-white p-3.5 space-y-2.5 rounded-none shadow-neo-sm">
-                {data.fields.map((f: any) => (
-                  <div key={f.id} className="flex justify-between items-center text-xs font-bold">
-                    <span className="text-white/60 uppercase">{f.label}</span>
-                    <span className="font-black text-white text-right uppercase">{accountData[f.id] || "-"}</span>
-                  </div>
-                ))}
-                {nickname && (
-                  <div className="flex justify-between items-center text-xs font-bold">
-                    <span className="text-white/60 uppercase">Nickname</span>
-                    <span className="font-black text-white text-right uppercase">{nickname}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Section 2: Ringkasan Pembelian */}
-            <div className="space-y-2">
-              <div className="flex items-center text-xs font-black text-white uppercase tracking-wider">
-                <span className="mr-1.5 font-black">—</span> Ringkasan Pembelian
-              </div>
-              <div className="bg-black border-2 border-white p-3.5 space-y-2.5 rounded-none shadow-neo-sm">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-white/60 uppercase">Nomor Handphone</span>
-                  <span className="font-black text-white text-right">{waNumber}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-white/60 uppercase">Harga</span>
-                  <span className="font-black text-white text-right">Rp {selectedItem?.price.toLocaleString("id-ID")}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-white/60 uppercase">Fee</span>
-                  <span className="font-black text-white text-right">Rp {selectedPayment?.fee.toLocaleString("id-ID")}</span>
-                </div>
-                {discountAmount > 0 && (
-                  <div className="flex justify-between items-center text-xs font-bold text-accent-green">
-                    <span className="uppercase">Diskon Promo</span>
-                    <span className="font-black text-right">- Rp {discountAmount.toLocaleString("id-ID")}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-white/60 uppercase">Sistem Pembayaran</span>
-                  <span className="font-black text-white text-right uppercase tracking-wide">{selectedPayment?.name}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs pt-2.5 border-t border-white/20 border-dashed font-black">
-                  <span className="text-white/70 uppercase">Total Pembayaran</span>
-                  <span className="text-white">Rp {totalPrice.toLocaleString("id-ID")}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2.5 pt-1.5">
-              <button
-                onClick={executeCheckout}
-                disabled={isSubmitting}
-                className="w-full bg-accent border-2 border-accent text-black py-3.5 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-neo-orange transition-all select-none hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-              >
-                {isSubmitting ? (
-                  <>
-                    <FaSpinner className="animate-spin w-4 h-4" />
-                    Memproses...
-                  </>
-                ) : (
-                  <>
-                    Beli Sekarang
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="mt-0.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="w-full text-white/50 hover:text-white py-1.5 text-xs font-black uppercase tracking-wider cursor-pointer transition-colors text-center hover:underline"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TopupConfirmModal
+        showConfirmModal={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        fields={data.fields}
+        accountData={accountData}
+        nickname={nickname}
+        waNumber={waNumber}
+        selectedItem={selectedItem}
+        selectedPayment={selectedPayment}
+        discountAmount={discountAmount}
+        totalPrice={totalPrice}
+        onConfirmCheckout={executeCheckout}
+        isSubmitting={isSubmitting}
+      />
 
       {/* CUSTOM NEOBRUTALISM ERROR POPUP MODAL */}
       {errorModalMsg && (
@@ -1232,7 +734,6 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
         </div>
       )}
 
-      {/* FOOTER */}
       <TopupFooter />
     </div>
   );
