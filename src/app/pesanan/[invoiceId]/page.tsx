@@ -16,6 +16,7 @@ interface TrackedOrder {
   gameId: string;
   item: string;
   targetId: string;
+  username?: string;
   paymentMethod: string;
   price: string;
   priceBase?: number;
@@ -397,6 +398,12 @@ export default function PesananPage() {
                       <span className="text-white/50 font-black uppercase block text-[9.5px] tracking-wider mb-0.5">ID Pelanggan</span>
                       <span className="font-bold text-white font-mono break-all">{parsedTarget.userId} {parsedTarget.zoneId ? `(${parsedTarget.zoneId})` : ""}</span>
                     </div>
+                    {order.username && (
+                      <div>
+                        <span className="text-white/50 font-black uppercase block text-[9.5px] tracking-wider mb-0.5">Username</span>
+                        <span className="font-bold text-white uppercase break-words">{order.username}</span>
+                      </div>
+                    )}
                     <div>
                       <span className="text-white/50 font-black uppercase block text-[9.5px] tracking-wider mb-0.5">Tanggal</span>
                       <span className="font-bold text-white uppercase">{formatDate(order.createdAt, order.date)}</span>

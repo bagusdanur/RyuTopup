@@ -168,6 +168,23 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const passes = data.items.filter((item: any) => item.isPass);
   const regularItems = data.items.filter((item: any) => !item.isPass);
 
+  const shortenName = (name: string) => {
+    let shortened = name.toUpperCase();
+    const gameUpper = data.name.toUpperCase();
+    // Remove exact game name
+    if (shortened.startsWith(gameUpper)) {
+      shortened = shortened.substring(gameUpper.length).trim();
+    }
+    // Hardcoded removal for specific common clutter
+    shortened = shortened.replace(/MOBILE LEGENDS:? BANG BANG/gi, "").trim();
+    shortened = shortened.replace(/MOBILE LEGENDS/gi, "").trim();
+    shortened = shortened.replace(/\(INDONESIA\)|\(GLOBAL\)|\(ID\)/gi, "").trim();
+    shortened = shortened.replace(/^-+|-+$/g, "").trim(); // remove leftover dashes
+    
+    // If it ends up empty (unlikely), fallback to original
+    return shortened || name.toUpperCase();
+  };
+
   const handleInputChange = (fieldId: string, value: string) => {
     setAccountData((prev) => ({ ...prev, [fieldId]: value }));
     if (fieldErrors[fieldId]) {
@@ -346,6 +363,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       return;
     }
 
+    // Force nickname check for Mobile Legends
+    if (['mobile-legends', 'mlbb', 'ml'].includes(gameId.toLowerCase()) && !nickname) {
+      setCheckoutError("Silakan klik 'Cek Nickname' terlebih dahulu sebelum melanjutkan pembayaran!");
+      return;
+    }
+
     // Show confirmation modal
     setShowConfirmModal(true);
   };
@@ -382,8 +405,9 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
           email: email.trim() || undefined,
           gameId,
           targetId: formattedTargetId,
+          username: nickname || "",
           itemCode: selectedItem.id,
-          itemName: selectedItem.name,
+          itemName: nickname ? `${selectedItem.name} - ${nickname}` : selectedItem.name,
           priceBase: selectedItem.price,
           priceFee: selectedPayment.fee,
           priceTotal: totalPrice,
@@ -611,12 +635,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                         }`}
                       >
                         {/* Item Name */}
-                        <span className={`text-[11px] md:text-[12.5px] font-black uppercase tracking-wide leading-snug mb-2 pr-6 ${isSelected ? "text-black" : "text-white"}`}>
-                          {item.name}
+                        <span className={`text-[11px] md:text-[12px] uppercase tracking-wide leading-snug mb-3 pr-4 ${isSelected ? "text-black font-black" : "text-white/90 font-bold"}`}>
+                          {shortenName(item.name)}
                         </span>
 
                         {/* Price & Icon row */}
-                        <div className="flex items-center gap-1.5 mt-auto">
+                        <div className="flex items-center gap-2 mt-auto">
                           <span className="w-5 h-5 md:w-6 md:h-6 select-none shrink-0 flex items-center justify-center">
                             {typeof item.icon === "string" && item.icon.startsWith("http") ? (
                               <img src={item.icon} alt="" className="w-full h-full object-contain" />
@@ -624,17 +648,17 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                               <span className="text-[14px] md:text-[18px]">{item.icon}</span>
                             )}
                           </span>
-                          <span className={`text-[12px] md:text-[13.5px] font-black leading-none ${isSelected ? "text-black" : "text-white"}`}>
-                            Rp {item.price.toLocaleString("id-ID")},-
+                          <span className={`text-[12.5px] md:text-[14px] font-black leading-none tracking-wide ${isSelected ? "text-black" : "text-white"}`}>
+                            Rp {item.price.toLocaleString("id-ID")}
                           </span>
                         </div>
 
                         {/* Discount badge */}
                         {item.discount && (
-                          <span className={`absolute bottom-0 right-0 border-t-2 border-l-2 border-white text-[9px] font-black px-2 py-0.5 select-none rounded-none uppercase ${
+                          <span className={`absolute bottom-0 right-0 border-t-2 border-l-2 border-white text-[9px] font-black px-2.5 py-1 select-none rounded-none uppercase tracking-wider ${
                             isSelected ? "bg-black text-accent border-black" : "bg-accent-red text-white border-accent-red"
                           }`}>
-                            {item.discount} OFF
+                            {item.discount}
                           </span>
                         )}
                       </button>
@@ -668,12 +692,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                         }`}
                       >
                         {/* Item Name */}
-                        <span className={`text-[11px] md:text-[12.5px] font-black uppercase tracking-wide leading-snug mb-2 pr-6 ${isSelected ? "text-black" : "text-white"}`}>
-                          {item.name}
+                        <span className={`text-[11px] md:text-[12px] uppercase tracking-wide leading-snug mb-3 pr-4 ${isSelected ? "text-black font-black" : "text-white/90 font-bold"}`}>
+                          {shortenName(item.name)}
                         </span>
 
                         {/* Price & Icon row */}
-                        <div className="flex items-center gap-1.5 mt-auto">
+                        <div className="flex items-center gap-2 mt-auto">
                           <span className="w-5 h-5 md:w-6 md:h-6 select-none shrink-0 flex items-center justify-center">
                             {typeof item.icon === "string" && item.icon.startsWith("http") ? (
                               <img src={item.icon} alt="" className="w-full h-full object-contain" />
@@ -681,17 +705,17 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                               <span className="text-[14px] md:text-[18px]">{item.icon}</span>
                             )}
                           </span>
-                          <span className={`text-[12px] md:text-[13.5px] font-black leading-none ${isSelected ? "text-black" : "text-white"}`}>
-                            Rp {item.price.toLocaleString("id-ID")},-
+                          <span className={`text-[12.5px] md:text-[14px] font-black leading-none tracking-wide ${isSelected ? "text-black" : "text-white"}`}>
+                            Rp {item.price.toLocaleString("id-ID")}
                           </span>
                         </div>
 
                         {/* Discount badge */}
                         {item.discount && (
-                          <span className={`absolute bottom-0 right-0 border-t-2 border-l-2 border-white text-[9px] font-black px-2 py-0.5 select-none rounded-none uppercase ${
+                          <span className={`absolute bottom-0 right-0 border-t-2 border-l-2 border-white text-[9px] font-black px-2.5 py-1 select-none rounded-none uppercase tracking-wider ${
                             isSelected ? "bg-black text-accent border-black" : "bg-accent-red text-white border-accent-red"
                           }`}>
-                            {item.discount} OFF
+                            {item.discount}
                           </span>
                         )}
                       </button>

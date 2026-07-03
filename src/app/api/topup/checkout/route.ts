@@ -38,6 +38,7 @@ export async function POST(request: Request) {
       paymentMethod,
       promoCode,
       discountAmount,
+      username,
     } = body;
 
     // Validate required inputs
@@ -151,6 +152,7 @@ export async function POST(request: Request) {
         email: email ? email.trim() : null,
         game_id: gameId.trim(),
         target_id: targetId.trim(),
+        username: username ? username.trim() : null,
         item_name: itemName.trim(),
         item_code: itemCode.trim(),
         price_base: priceBase,
@@ -179,7 +181,7 @@ export async function POST(request: Request) {
 
     // --- SEND INVOICE EMAIL ---
     if (email && email.trim() !== "") {
-      const emailHtml = generateInvoiceEmailHtml(invoiceId, itemName, priceTotal, promoCode, discountAmount);
+      const emailHtml = generateInvoiceEmailHtml(invoiceId, itemName, priceTotal, promoCode, discountAmount, username);
       // Fire and forget (don't await) so it doesn't slow down checkout
       sendEmail({
         to: email.trim(),

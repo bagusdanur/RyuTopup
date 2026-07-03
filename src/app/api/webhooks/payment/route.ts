@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     // Fetch existing transaction to get email and item_name and target_id and buyer_sku_code
     const { data: trx } = await supabaseServer
       .from("topup_transactions")
-      .select("email, item_name, target_id, buyer_sku_code, topup_status")
+      .select("email, item_name, target_id, buyer_sku_code, topup_status, game_id, username")
       .eq("id", order_id)
       .single();
 
@@ -65,7 +65,11 @@ export async function POST(request: Request) {
         try {
           console.log(`[Auto-Topup] Triggering topup for Order ${order_id} with SKU ${trx.buyer_sku_code}`);
           const refId = `RTP-${order_id}`; // Unique Ref ID for provider
-          const topupRes = await processTopup(refId, trx.buyer_sku_code, trx.target_id);
+          
+          const isNumericGame = trx.game_id && (trx.game_id.includes("mobile-legends") || trx.game_id.includes("mlbb") || trx.game_id.includes("free-fire"));
+          const cleanTargetId = isNumericGame ? trx.target_id.replace(/\D/g, "") : trx.target_id; 
+          
+          const topupRes = await processTopup(refId, trx.buyer_sku_code, cleanTargetId);
           
           console.log("[Auto-Topup] Provider Response:", JSON.stringify(topupRes));
 
@@ -104,8 +108,8 @@ export async function POST(request: Request) {
     }
 
     // --- SEND SUCCESS EMAIL ---
-    if (localStatus === "success" && trx?.email && trx.email.trim() !== "") {
-      const emailHtml = generateSuccessEmailHtml(order_id, trx.item_name || "Produk Game");
+    if (localStatus === "success" && trx.email) {
+      const emailHtml = generateSuccessEmailHtml(order_id, trx.item_name || "Produk Game", trx.username);
       sendEmail({
         to: trx.email.trim(),
         subject: `Pembayaran Berhasil #${order_id} - RyuTopup`,

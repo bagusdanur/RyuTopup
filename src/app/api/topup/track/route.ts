@@ -41,6 +41,7 @@ export async function GET(request: Request) {
       gameId: data.game_id,
       item: data.item_name,
       targetId: data.target_id,
+      username: data.username,
       paymentMethod: data.payment_method.toUpperCase(),
       price: `Rp ${Number(data.price_total).toLocaleString("id-ID")}`,
       priceBase: Number(data.price_base),

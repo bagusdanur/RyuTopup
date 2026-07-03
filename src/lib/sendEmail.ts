@@ -37,10 +37,15 @@ export function generateInvoiceEmailHtml(
   itemName: string, 
   total: number, 
   promoCode?: string | null, 
-  discountAmount?: number | null
+  discountAmount?: number | null,
+  username?: string | null
 ) {
   const promoHtml = promoCode && discountAmount 
     ? `<p style="margin: 5px 0; color: #00ffcc;"><strong>Diskon Promo (${promoCode}):</strong> - Rp ${discountAmount.toLocaleString("id-ID")}</p>`
+    : "";
+    
+  const usernameHtml = username
+    ? `<p style="margin: 5px 0;"><strong>Username / Nickname:</strong> ${username}</p>`
     : "";
 
   return `
@@ -51,6 +56,7 @@ export function generateInvoiceEmailHtml(
       <div style="background-color: #222; padding: 15px; border: 1px solid #fff; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Nomor Pesanan:</strong> ${invoiceId}</p>
         <p style="margin: 5px 0;"><strong>Produk:</strong> ${itemName}</p>
+        ${usernameHtml}
         ${promoHtml}
         <p style="margin: 5px 0; color: #00ffcc; font-weight: bold; font-size: 18px;"><strong>Total Tagihan:</strong> Rp ${total.toLocaleString("id-ID")}</p>
       </div>
@@ -63,7 +69,11 @@ export function generateInvoiceEmailHtml(
   `;
 }
 
-export function generateSuccessEmailHtml(invoiceId: string, itemName: string) {
+export function generateSuccessEmailHtml(invoiceId: string, itemName: string, username?: string | null) {
+  const usernameHtml = username
+    ? `<p style="margin: 5px 0;"><strong>Username / Nickname:</strong> ${username}</p>`
+    : "";
+    
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #111; color: #fff; border: 2px solid #fff; padding: 20px;">
       <h1 style="color: #ff9900; text-transform: uppercase; margin-top: 0;">Pembayaran Berhasil</h1>
@@ -72,6 +82,7 @@ export function generateSuccessEmailHtml(invoiceId: string, itemName: string) {
       <div style="background-color: #222; padding: 15px; border: 1px solid #fff; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Nomor Pesanan:</strong> ${invoiceId}</p>
         <p style="margin: 5px 0;"><strong>Produk:</strong> ${itemName}</p>
+        ${usernameHtml}
         <p style="margin: 5px 0; color: #ff9900; font-weight: bold;"><strong>Status:</strong> Sedang Diproses</p>
       </div>
       <p>Pesanan Anda sedang dalam antrean pengiriman. Biasanya item akan masuk dalam hitungan detik hingga beberapa menit.</p>

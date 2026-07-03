@@ -26,18 +26,17 @@ export async function POST(request: Request) {
       const refId = 'cek-' + Date.now() + Math.floor(Math.random() * 1000);
       const rawString = `${username}${apiKey}${refId}`;
       const sign = crypto.createHash('md5').update(rawString).digest('hex');
-
       try {
         const res = await fetch('https://api.digiflazz.com/v1/transaction', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            cmd: 'inquiry',
             username,
             buyer_sku_code: 'pre32531666',
             customer_no: targetId,
             ref_id: refId,
-            sign
+            sign,
+            testing: false // harus false agar benar-benar potong saldo Rp 5 untuk cek nama
           })
         });
 
