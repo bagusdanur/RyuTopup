@@ -663,21 +663,23 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                         }`}
                       >
                         {/* Item Name */}
-                        <span className={`text-[13px] md:text-[14px] tracking-wide leading-snug mb-3 pr-4 ${isSelected ? "text-black font-black" : "text-white/90 font-bold"}`}>
-                          {shortenName(item.name)}
-                        </span>
+                        <div className="mb-3 pr-4">
+                          <span className={`text-[13px] md:text-[14px] tracking-wide leading-snug ${isSelected ? "text-black font-black" : "text-white font-bold"}`}>
+                            {shortenName(item.name)}
+                          </span>
+                        </div>
 
-                        {/* Price & Icon row */}
-                        <div className="flex items-center gap-2 mt-auto">
-                          <span className="w-5 h-5 md:w-6 md:h-6 select-none shrink-0 flex items-center justify-center">
+                        {/* Price & Icon */}
+                        <div className="flex items-center gap-1.5 mt-auto">
+                          <span className="w-4 h-4 md:w-5 md:h-5 select-none shrink-0 flex items-center justify-center">
                             {typeof item.icon === "string" && item.icon.startsWith("http") ? (
                               <img src={item.icon} alt="" className="w-full h-full object-contain" />
                             ) : (
-                              <span className="text-[14px] md:text-[18px]">{item.icon}</span>
+                              <span className="text-[12px] md:text-[14px]">{item.icon}</span>
                             )}
                           </span>
-                          <span className={`text-[12.5px] md:text-[14px] font-black leading-none tracking-wide ${isSelected ? "text-black" : "text-white"}`}>
-                            Rp {item.price.toLocaleString("id-ID")}
+                          <span className={`text-[11.5px] md:text-[12.5px] font-semibold leading-none tracking-wide ${isSelected ? "text-black/80" : "text-white/70"}`}>
+                            Rp {item.price.toLocaleString("id-ID")},-
                           </span>
                         </div>
 
@@ -720,21 +722,23 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                         }`}
                       >
                         {/* Item Name */}
-                        <span className={`text-[13px] md:text-[14px] tracking-wide leading-snug mb-3 pr-4 ${isSelected ? "text-black font-black" : "text-white/90 font-bold"}`}>
-                          {shortenName(item.name)}
-                        </span>
+                        <div className="mb-3 pr-4">
+                          <span className={`text-[13px] md:text-[14px] tracking-wide leading-snug ${isSelected ? "text-black font-black" : "text-white font-bold"}`}>
+                            {shortenName(item.name)}
+                          </span>
+                        </div>
 
-                        {/* Price & Icon row */}
-                        <div className="flex items-center gap-2 mt-auto">
-                          <span className="w-5 h-5 md:w-6 md:h-6 select-none shrink-0 flex items-center justify-center">
+                        {/* Price & Icon */}
+                        <div className="flex items-center gap-1.5 mt-auto">
+                          <span className="w-4 h-4 md:w-5 md:h-5 select-none shrink-0 flex items-center justify-center">
                             {typeof item.icon === "string" && item.icon.startsWith("http") ? (
                               <img src={item.icon} alt="" className="w-full h-full object-contain" />
                             ) : (
-                              <span className="text-[14px] md:text-[18px]">{item.icon}</span>
+                              <span className="text-[12px] md:text-[14px]">{item.icon}</span>
                             )}
                           </span>
-                          <span className={`text-[12.5px] md:text-[14px] font-black leading-none tracking-wide ${isSelected ? "text-black" : "text-white"}`}>
-                            Rp {item.price.toLocaleString("id-ID")}
+                          <span className={`text-[11.5px] md:text-[12.5px] font-semibold leading-none tracking-wide ${isSelected ? "text-black/80" : "text-white/70"}`}>
+                            Rp {item.price.toLocaleString("id-ID")},-
                           </span>
                         </div>
 
