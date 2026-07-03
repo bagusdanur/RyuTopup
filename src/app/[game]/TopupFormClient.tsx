@@ -166,20 +166,28 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
 
   const shortenName = (name: string) => {
     let shortened = name;
-    const gameUpper = data.name.toUpperCase();
-    const nameUpper = shortened.toUpperCase();
     
-    // Remove exact game name prefix
-    if (nameUpper.startsWith(gameUpper)) {
-      shortened = shortened.substring(gameUpper.length).trim();
-    }
+    // 1. Remove specific game names and prefixes aggressively
+    shortened = shortened.replace(/HONKAI:?\s*STAR\s*RAIL/gi, "");
+    shortened = shortened.replace(/HONKAI\s*STARRAIL/gi, "");
+    shortened = shortened.replace(/HSR/gi, "");
+    shortened = shortened.replace(/GENSHIN\s*IMPACT/gi, "");
+    shortened = shortened.replace(/GENSHIN/gi, "");
+    shortened = shortened.replace(/MOBILE\s*LEGENDS:?\s*BANG\s*BANG/gi, "");
+    shortened = shortened.replace(/MOBILE\s*LEGENDS/gi, "");
+    shortened = shortened.replace(/MLBB/gi, "");
+    shortened = shortened.replace(/VALORANT/gi, "");
+    shortened = shortened.replace(/PUBG\s*MOBILE/gi, "");
+    shortened = shortened.replace(/PUBG/gi, "");
+    shortened = shortened.replace(/FREE\s*FIRE/gi, "");
+    shortened = shortened.replace(/FF/gi, "");
+
+    // 2. Remove common region suffixes or trash symbols
+    shortened = shortened.replace(/\(INDONESIA\)|\(GLOBAL\)|\(ID\)|\(REGION INDONESIA\)/gi, "");
     
-    // Remove specific common clutter
-    shortened = shortened.replace(/MOBILE LEGENDS:?\s*BANG BANG/gi, "").trim();
-    shortened = shortened.replace(/MOBILE LEGENDS/gi, "").trim();
-    shortened = shortened.replace(/\(INDONESIA\)|\(GLOBAL\)|\(ID\)|\(REGION INDONESIA\)/gi, "").trim();
-    shortened = shortened.replace(/^-+|-+$/g, "").trim(); // remove leftover dashes
-    
+    // 3. Trim leftover dashes, colons, spaces from both ends
+    shortened = shortened.replace(/^[\s\-:+]+|[\s\-:+]+$/g, "").trim();
+
     if (!shortened) return name; // fallback if empty
     
     // Convert to Title Case for better readability
