@@ -167,6 +167,13 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
 
   const shortenName = (name: string) => {
     let shortened = name;
+
+    // 0. Shorten specific long pass/item names to standard abbreviations
+    shortened = shortened.replace(/WEEKLY DIAMOND PASS/gi, "WDP");
+    shortened = shortened.replace(/EXPRESS SUPPLY PASS/gi, "Supply Pass");
+    shortened = shortened.replace(/STARLIGHT PLUS MEMBER/gi, "Starlight Plus");
+    shortened = shortened.replace(/STARLIGHT MEMBER/gi, "Starlight");
+    shortened = shortened.replace(/STARLIGHT MEMBERSHIP/gi, "Starlight");
     
     // 1. Remove specific game names and prefixes aggressively
     shortened = shortened.replace(/HONKAI:?\s*STAR\s*RAIL/gi, "");
