@@ -1,8 +1,34 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { headers } from 'next/headers';
+
+const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
+const LIMIT = 10; // Max 10 inquiries
+const WINDOW = 60 * 1000; // per 1 minute
 
 export async function POST(request: Request) {
   try {
+    const headerList = await headers();
+    const ip = headerList.get("x-forwarded-for")?.split(',')[0] || headerList.get("x-real-ip") || "127.0.0.1";
+
+    const now = Date.now();
+    const rateData = rateLimitMap.get(ip) || { count: 0, lastReset: now };
+
+    if (now - rateData.lastReset > WINDOW) {
+      rateData.count = 0;
+      rateData.lastReset = now;
+    }
+
+    if (rateData.count >= LIMIT) {
+      return NextResponse.json(
+        { success: false, error: 'Terlalu banyak permintaan pengecekan. Silakan coba lagi setelah 1 menit.' },
+        { status: 429 }
+      );
+    }
+
+    rateData.count += 1;
+    rateLimitMap.set(ip, rateData);
+
     const body = await request.json();
     const { gameId, targetId } = body;
 
@@ -12,6 +38,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
 
     let nickname = '';
 

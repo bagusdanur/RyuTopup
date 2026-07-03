@@ -2,12 +2,21 @@ import Link from "next/link";
 import { FiGrid, FiBox, FiTag, FiShoppingCart, FiLogOut } from "react-icons/fi";
 import AdminNotifier from "@/components/AdminNotifier";
 import AdminBottomNav from "@/components/AdminBottomNav";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
   return (
     <div className="min-h-screen bg-black text-white antialiased font-sans selection:bg-accent selection:text-black">
       

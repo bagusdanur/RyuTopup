@@ -66,7 +66,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Failed to connect to PG verification" }, { status: 500 });
       }
     } else {
-      // Fallback if PG config is missing (trust payload)
+      // In production, we MUST NOT trust the payload fallback!
+      if (process.env.NODE_ENV === "production") {
+        console.error("WEBHOOK ERROR: PG configuration is missing in production!");
+        return NextResponse.json({ error: "PG configuration missing" }, { status: 500 });
+      }
+
+      // Fallback if PG config is missing (trust payload - only in development)
       const statusStr = status.toLowerCase();
       if (statusStr === "completed" || statusStr === "success" || statusStr === "paid") {
         localStatus = "success";
@@ -76,6 +82,7 @@ export async function POST(request: Request) {
         localStatus = "processing";
       }
     }
+
 
     // Update transaction payment status in database
     const { error } = await supabaseServer
