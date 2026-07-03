@@ -69,12 +69,23 @@ export async function POST(request: Request) {
           
           console.log("[Auto-Topup] Provider Response:", JSON.stringify(topupRes));
 
-          // Save provider reference ID to database
+          let finalTopupStatus = "processing";
+          const providerStatus = topupRes?.data?.status?.toLowerCase();
+          
+          if (providerStatus === "sukses") {
+            finalTopupStatus = "success";
+          } else if (providerStatus === "gagal") {
+            finalTopupStatus = "failed";
+          }
+
+          // Save provider reference ID and immediate status to database
           await supabaseServer
             .from("topup_transactions")
             .update({
+              topup_status: finalTopupStatus,
               provider_ref_id: refId,
-              provider_message: topupRes?.data?.message || 'Memproses transaksi ke provider'
+              provider_message: topupRes?.data?.message || 'Memproses transaksi ke provider',
+              provider_sn: topupRes?.data?.sn || null
             })
             .eq("id", order_id);
             
