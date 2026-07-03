@@ -9,7 +9,14 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
   const [selectedGame, setSelectedGame] = useState(initialGames[0]?.id || "");
   const [products, setProducts] = useState(initialProducts);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ price: 0, original_price: 0, discount: "", is_flash_sale: false });
+  const [editForm, setEditForm] = useState({ 
+    price: 0, 
+    original_price: 0, 
+    discount: "", 
+    is_flash_sale: false,
+    buyer_sku_code: "",
+    provider_price: 0
+  });
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
 
@@ -20,6 +27,8 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
       original_price: product.original_price,
       discount: product.discount || "",
       is_flash_sale: product.is_flash_sale || false,
+      buyer_sku_code: product.buyer_sku_code || "",
+      provider_price: product.provider_price || 0
     });
   };
 
@@ -35,6 +44,8 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
         original_price: editForm.original_price,
         discount: editForm.discount,
         is_flash_sale: editForm.is_flash_sale,
+        buyer_sku_code: editForm.buyer_sku_code,
+        provider_price: editForm.provider_price
       })
       .eq("id", id);
 
@@ -92,6 +103,8 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
           <thead>
             <tr className="border-b-2 border-white/20 text-[10px] font-black text-white/60 uppercase tracking-widest">
               <th className="pb-3 px-2">Nama Produk</th>
+              <th className="pb-3 px-2 w-24">Kode SKU</th>
+              <th className="pb-3 px-2 w-32">Harga Modal (Rp)</th>
               <th className="pb-3 px-2 w-32">Harga Jual (Rp)</th>
               <th className="pb-3 px-2 w-32">Harga Coret (Rp)</th>
               <th className="pb-3 px-2 w-24">Label Diskon</th>
@@ -123,6 +136,33 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
                   <td className="py-4 px-2">
                     {isEditing ? (
                       <input
+                        type="text"
+                        value={editForm.buyer_sku_code}
+                        onChange={(e) => setEditForm({ ...editForm, buyer_sku_code: e.target.value })}
+                        placeholder="SKU"
+                        className="w-full bg-black border-2 border-white p-1.5 text-white outline-none focus:border-accent text-[10px]"
+                      />
+                    ) : (
+                      <span className="font-mono text-white/70">{p.buyer_sku_code || "-"}</span>
+                    )}
+                  </td>
+
+                  <td className="py-4 px-2">
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        value={editForm.provider_price}
+                        onChange={(e) => setEditForm({ ...editForm, provider_price: Number(e.target.value) })}
+                        className="w-full bg-black border-2 border-white p-1.5 text-white outline-none focus:border-accent"
+                      />
+                    ) : (
+                      <span className="font-mono text-white/50">Rp {(p.provider_price || 0).toLocaleString("id-ID")}</span>
+                    )}
+                  </td>
+
+                  <td className="py-4 px-2">
+                    {isEditing ? (
+                      <input
                         type="number"
                         value={editForm.price}
                         onChange={(e) => {
@@ -132,7 +172,14 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
                         className="w-full bg-black border-2 border-white p-1.5 text-white outline-none focus:border-accent"
                       />
                     ) : (
-                      <span className="font-mono">Rp {p.price.toLocaleString("id-ID")}</span>
+                      <div className="flex flex-col">
+                        <span className="font-mono">Rp {p.price.toLocaleString("id-ID")}</span>
+                        {p.provider_price > 0 && p.price - p.provider_price > 0 && (
+                          <span className="text-[9px] text-accent font-black tracking-widest mt-0.5">
+                            +{((p.price - p.provider_price)).toLocaleString("id-ID")}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </td>
 

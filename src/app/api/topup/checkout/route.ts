@@ -68,7 +68,7 @@ export async function POST(request: Request) {
         .select("id, used, quota, is_active, expires_at")
         .eq("code", upperCode)
         .maybeSingle();
-      
+
       if (!promoError && promoData && promoData.is_active) {
         // Increment usage safely via RPC or just update if we assume low collision
         await supabaseServer
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     const pgUrl = process.env.PAYMENT_GATEWAY_URL;
     const pgMerchant = process.env.PAYMENT_GATEWAY_MERCHANT_ID;
     const pgApiKey = process.env.PAYMENT_GATEWAY_API_KEY;
-    
+
     let pgPaymentNumber = null;
     let pgExpiredAt = null;
     let pgFee = null;
@@ -135,6 +135,13 @@ export async function POST(request: Request) {
     }
     // -----------------------------------
 
+    // --- FETCH PROVIDER SKU CODE ---
+    const { data: productData } = await supabaseServer
+      .from("products")
+      .select("buyer_sku_code")
+      .eq("id", itemCode)
+      .single();
+
     // Insert new transaction row in the database securely via the server-side service role client
     const { data, error } = await supabaseServer
       .from("topup_transactions")
@@ -156,7 +163,8 @@ export async function POST(request: Request) {
         pg_expired_at: pgExpiredAt,
         pg_fee: pgFee,
         promo_code: promoCode ? promoCode.trim().toUpperCase() : null,
-        discount_amount: discountAmount || 0
+        discount_amount: discountAmount || 0,
+        buyer_sku_code: productData?.buyer_sku_code || null
       })
       .select()
       .single();

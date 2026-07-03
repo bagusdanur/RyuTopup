@@ -127,7 +127,19 @@ export default async function AdminOrdersPage(props: {
                 </td>
 
                 <td className="py-4 px-2">
-                  {getStatusBadge(order.topup_status, order.payment_status)}
+                  <div className="flex flex-col items-start gap-1">
+                    {getStatusBadge(order.topup_status, order.payment_status)}
+                    {order.provider_message && (
+                      <span className="text-[9px] text-white/50 max-w-[150px] truncate" title={order.provider_message}>
+                        Info: {order.provider_message}
+                      </span>
+                    )}
+                    {order.provider_sn && (
+                      <span className="text-[9px] text-accent font-bold" title="Serial Number / Kode Voucher">
+                        SN: {order.provider_sn}
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 <td className="py-4 px-2 text-right" suppressHydrationWarning>
