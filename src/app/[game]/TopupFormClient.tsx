@@ -145,6 +145,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const [nickname, setNickname] = useState<string | null>(null);
   const [isLoadingNickname, setIsLoadingNickname] = useState(false);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
+  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
 
   const selectedItem = data.items.find((i: any) => i.id === activeItem);
   const selectedPayment = PAYMENT_METHODS.find((p) => p.id === activePayment);
@@ -209,6 +210,8 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
 
   const handleInputChange = (fieldId: string, value: string) => {
     setAccountData((prev) => ({ ...prev, [fieldId]: value }));
+    setNickname(null);
+    setNicknameError(null);
     if (fieldErrors[fieldId]) {
       setFieldErrors((prev) => {
         const next = { ...prev };
@@ -303,7 +306,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     }
   };
 
-  const handleCheckoutClick = () => {
+  const handleCheckoutClick = async () => {
     // Reset errors
     setFieldErrors({});
     setWaError(null);
@@ -385,15 +388,44 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       return;
     }
 
-    // Force nickname check for Mobile Legends
-    if (['mobile-legends', 'mlbb', 'ml'].includes(gameId.toLowerCase()) && !nickname) {
-      setCheckoutError("Silakan klik 'Cek Nickname' terlebih dahulu sebelum melanjutkan pembayaran!");
-      return;
-    }
+    // Automatically check nickname if not checked yet
+    if (!nickname) {
+      setNicknameError(null);
+      setIsLoadingNickname(true);
+      setCheckoutError(null);
 
-    // Show confirmation modal
-    setShowConfirmModal(true);
+      // Get the first field for generic ID, or userId/zoneId specifically
+      let targetId = accountData.userId ? `${accountData.userId}(${accountData.zoneId||''})` : Object.values(accountData)[0]?.trim();
+      
+      try {
+        const response = await fetch("/api/check-nickname", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gameId, targetId }),
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Gagal memverifikasi ID Pelanggan. Pastikan ID Anda benar.");
+        }
+        
+        setNickname(result.nickname);
+        // Show confirmation modal since check succeeded
+        setShowConfirmModal(true);
+      } catch (err: any) {
+        setNicknameError(err.message);
+        setCheckoutError(err.message);
+        setErrorModalMsg(err.message);
+      } finally {
+        setIsLoadingNickname(false);
+      }
+    } else {
+      // If nickname is already verified, proceed directly
+      setShowConfirmModal(true);
+    }
   };
+
 
   const executeCheckout = async () => {
     setShowConfirmModal(false);
@@ -1161,6 +1193,34 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM NEOBRUTALISM ERROR POPUP MODAL */}
+      {errorModalMsg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-accent-red border-4 border-black p-6 max-w-sm w-full shadow-neo-lg text-white space-y-4 rounded-none">
+            <div className="flex justify-between items-start gap-4">
+              <h4 className="text-[14px] font-black uppercase tracking-wider flex items-center gap-1.5 leading-none mt-1">
+                ⚠️ Nickname Error
+              </h4>
+              <button 
+                onClick={() => setErrorModalMsg(null)}
+                className="bg-black text-white border-2 border-black w-6 h-6 flex items-center justify-center font-black hover:bg-white hover:text-black transition-colors cursor-pointer select-none text-[11px]"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-[11.5px] font-bold leading-relaxed uppercase tracking-wide bg-black/20 p-3 border border-white/20">
+              {errorModalMsg}
+            </p>
+            <button
+              onClick={() => setErrorModalMsg(null)}
+              className="w-full bg-black text-white hover:bg-white hover:text-black border-2 border-black py-3 text-[11px] font-black uppercase tracking-widest transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer"
+            >
+              Tutup &amp; Periksa ID
+            </button>
           </div>
         </div>
       )}
