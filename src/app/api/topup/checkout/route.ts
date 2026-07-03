@@ -112,7 +112,7 @@ export async function POST(request: Request) {
           body: JSON.stringify({
             project: pgMerchant,
             order_id: invoiceId,
-            amount: priceBase, // PG usually calculates its own fee based on base amount
+            amount: Math.max(priceBase - (discountAmount || 0), 0),
             api_key: pgApiKey
           })
         });

@@ -121,4 +121,15 @@ export const GAME_DATA: Record<string, any> = {
       { id: "genshin_3280", name: "3280+600 Genesis Crystals", price: 799000, originalPrice: 799000, icon: "https://sin1.contabostorage.com/20ab04d5e89c402888b2ba814feec970:xc-alk12091as-assets-10x129-empeshop/media/file-1699385367-olubrdf6-3280genshin-impactcrystals.png?w=48&q=75" },
     ],
   },
+  "honkai-star-rail": {
+    name: "Honkai: Star Rail",
+    developer: "HoYoverse",
+    logo: "https://upload.wikimedia.org/wikipedia/en/e/e0/Honkai_Star_Rail_logo.png",
+    cover: "https://sin1.contabostorage.com/20ab04d5e89c402888b2ba814feec970:xc-alk12091as-assets-10x129-empeshop/media/file-1746236471-s2qup57v-8.jpg?w=160&q=75",
+    fields: [
+      { id: "uid", label: "UID Player", placeholder: "Contoh: 812345678" },
+      { id: "server", label: "Server", type: "select", options: ["Asia", "America", "Europe", "TW_HK_MO"], placeholder: "Pilih Server" },
+    ],
+    items: [],
+  },
 };

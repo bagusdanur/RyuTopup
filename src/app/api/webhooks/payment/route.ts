@@ -17,31 +17,64 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
     }
 
-    // Map PG status to our local status
-    let localStatus = "pending";
-    const statusStr = status.toLowerCase();
-    
-    if (statusStr === "completed" || statusStr === "success" || statusStr === "paid") {
-      localStatus = "success";
-    } else if (statusStr === "failed" || statusStr === "expired" || statusStr === "cancelled") {
-      localStatus = "failed";
-    } else if (statusStr === "processing") {
-      localStatus = "processing";
-    }
-
-    if (localStatus === "pending") {
-      return NextResponse.json({ message: "Status unchanged" });
-    }
-
     // Fetch existing transaction to get email and item_name and target_id and buyer_sku_code
     const { data: trx } = await supabaseServer
       .from("topup_transactions")
-      .select("email, item_name, target_id, buyer_sku_code, topup_status, game_id, username")
+      .select("email, item_name, target_id, buyer_sku_code, topup_status, game_id, username, price_base, discount_amount")
       .eq("id", order_id)
       .single();
 
     if (!trx) {
        return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    }
+
+    // --- VERIFY WEBHOOK VIA PAKASIR API ---
+    // Pakasir docs suggest checking status using the Transaction Detail API for better security
+    const pgMerchant = process.env.PAYMENT_GATEWAY_MERCHANT_ID;
+    const pgApiKey = process.env.PAYMENT_GATEWAY_API_KEY;
+    const pgUrl = process.env.PAYMENT_GATEWAY_URL || "https://app.pakasir.com/api";
+
+    let localStatus = "pending";
+
+    if (pgMerchant && pgApiKey) {
+      const trxAmount = Math.max((trx.price_base || 0) - (trx.discount_amount || 0), 0);
+      const verifyUrl = `${pgUrl}/transactiondetail?project=${pgMerchant}&amount=${trxAmount}&order_id=${order_id}&api_key=${pgApiKey}`;
+      
+      try {
+        const verifyRes = await fetch(verifyUrl);
+        if (verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          if (verifyData.transaction && verifyData.transaction.status) {
+            const apiStatus = verifyData.transaction.status.toLowerCase();
+            if (apiStatus === "completed" || apiStatus === "success" || apiStatus === "paid") {
+              localStatus = "success";
+            } else if (apiStatus === "failed" || apiStatus === "expired" || apiStatus === "cancelled") {
+              localStatus = "failed";
+            } else if (apiStatus === "processing") {
+              localStatus = "processing";
+            }
+          } else {
+            console.error("Pakasir Verification Error (Unexpected Data):", verifyData);
+            return NextResponse.json({ error: "Verification failed" }, { status: 400 });
+          }
+        } else {
+          console.error("Pakasir API Error:", await verifyRes.text());
+          return NextResponse.json({ error: "Failed to verify transaction with PG" }, { status: 400 });
+        }
+      } catch (verifyErr) {
+        console.error("Pakasir Fetch Error:", verifyErr);
+        return NextResponse.json({ error: "Failed to connect to PG verification" }, { status: 500 });
+      }
+    } else {
+      // Fallback if PG config is missing (trust payload)
+      const statusStr = status.toLowerCase();
+      if (statusStr === "completed" || statusStr === "success" || statusStr === "paid") {
+        localStatus = "success";
+      } else if (statusStr === "failed" || statusStr === "expired" || statusStr === "cancelled") {
+        localStatus = "failed";
+      } else if (statusStr === "processing") {
+        localStatus = "processing";
+      }
     }
 
     // Update transaction payment status in database

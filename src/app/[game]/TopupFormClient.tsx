@@ -52,20 +52,6 @@ const PAYMENT_METHODS: PaymentMethod[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/3/39/Ovo_logo.svg",
   },
   {
-    id: "alfamart",
-    name: "Alfamart",
-    group: "Convenience Store",
-    fee: 2500,
-    logo: "https://sin1.contabostorage.com/20ab04d5e89c402888b2ba814feec970:xc-alk12091as-assets-10x129-empeshop/media/file-1738775668-4nha5cp3-file-1737142974-nbmk0t1b-alfa-1.png?w=160&q=75",
-  },
-  {
-    id: "indomaret",
-    name: "Indomaret",
-    group: "Convenience Store",
-    fee: 2500,
-    logo: "https://sin1.contabostorage.com/20ab04d5e89c402888b2ba814feec970:xc-alk12091as-assets-10x129-empeshop/media/file-1738775665-v5gkgnso-file-1737143060-2i3k401v-indomaret-1.png?w=160&q=75",
-  },
-  {
     id: "bni",
     name: "BNI VA",
     group: "Virtual Account",
@@ -773,7 +759,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                 { name: "E-Wallet", methods: eWalletMethods },
                 { name: "Convenience Store", methods: convenienceMethods },
                 { name: "Virtual Account", methods: vaMethods },
-              ].map((group) => {
+              ].filter(group => group.methods.length > 0).map((group) => {
                 const isOpen = expandedGroups[group.name];
                 const activeInGroup = group.methods.some((m) => m.id === activePayment);
                 
@@ -1063,6 +1049,12 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                     <span className="font-black text-white text-right uppercase">{accountData[f.id] || "-"}</span>
                   </div>
                 ))}
+                {nickname && (
+                  <div className="flex justify-between items-center text-xs font-bold">
+                    <span className="text-white/60 uppercase">Nickname</span>
+                    <span className="font-black text-white text-right uppercase">{nickname}</span>
+                  </div>
+                )}
               </div>
             </div>
 
