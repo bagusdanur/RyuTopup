@@ -148,7 +148,6 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
             </div>
           </section>
         )}
-
         {/* 2. GAME SELECTION */}
         <section id="games" className="space-y-6 pt-2">
           {/* Section head */}
@@ -198,10 +197,61 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
           )}
         </section>
 
+        {/* HOW TO TOP UP SECTION */}
+        <section id="how-to" className="space-y-6 pt-4 border-t-2 border-white/10 border-dashed">
+          <div>
+            <span className="text-[11px] font-black tracking-[0.12em] uppercase text-accent flex items-center gap-1.5 mb-1">
+              Panduan Pengguna
+            </span>
+            <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider">
+              Cara Mudah Top Up di RyuTopup
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Step 1 */}
+            <div className="bg-black border-4 border-white p-5 hover:translate-x-1 hover:-translate-y-1 hover:shadow-neo-orange transition-all duration-200 relative group">
+              <div className="absolute top-4 right-4 text-3xl font-black italic opacity-25 group-hover:opacity-40 transition-opacity">01</div>
+              <div className="w-12 h-12 bg-accent-orange border-2 border-black flex items-center justify-center text-black font-black text-xl shadow-neo-sm mb-4">
+                🎮
+              </div>
+              <h3 className="text-[15px] font-black uppercase text-white tracking-wide mb-1">1. Pilih Game &amp; Item</h3>
+              <p className="text-[12px] text-white/70 font-bold leading-relaxed">
+                Pilih game favoritmu, tentukan nominal diamond atau membership yang ingin kamu beli dari daftar produk kami.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-black border-4 border-white p-5 hover:translate-x-1 hover:-translate-y-1 hover:shadow-neo-purple transition-all duration-200 relative group">
+              <div className="absolute top-4 right-4 text-3xl font-black italic opacity-25 group-hover:opacity-40 transition-opacity">02</div>
+              <div className="w-12 h-12 bg-accent-purple border-2 border-black flex items-center justify-center text-black font-black text-xl shadow-neo-sm mb-4">
+                🔑
+              </div>
+              <h3 className="text-[15px] font-black uppercase text-white tracking-wide mb-1">2. Masukkan Data Akun</h3>
+              <p className="text-[12px] text-white/70 font-bold leading-relaxed">
+                Masukkan User ID &amp; Zone ID game kamu dengan benar pada form. Validasi username otomatis akan muncul jika tersedia.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-black border-4 border-white p-5 hover:translate-x-1 hover:-translate-y-1 hover:shadow-neo-green transition-all duration-200 relative group">
+              <div className="absolute top-4 right-4 text-3xl font-black italic opacity-25 group-hover:opacity-40 transition-opacity">03</div>
+              <div className="w-12 h-12 bg-accent-green border-2 border-black flex items-center justify-center text-black font-black text-xl shadow-neo-sm mb-4">
+                ⚡
+              </div>
+              <h3 className="text-[15px] font-black uppercase text-white tracking-wide mb-1">3. Bayar &amp; Selesai</h3>
+              <p className="text-[12px] text-white/70 font-bold leading-relaxed">
+                Pilih metode pembayaran (QRIS / VA), lakukan pembayaran. Sistem akan memproses top up secara otomatis instan!
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* 3. LEADERBOARD */}
         {initialTopSpenders && initialTopSpenders.length > 0 && (
           <section id="leaderboard" className="space-y-5 pt-2">
             <div className="flex items-center gap-2.5 font-black text-lg md:text-xl text-white uppercase tracking-wider">
+
               <span className="w-[32px] h-[32px] border-2 border-accent bg-accent flex items-center justify-center text-black shadow-neo-sm">
                 <FaTrophy className="w-4.5 h-4.5" />
               </span>
