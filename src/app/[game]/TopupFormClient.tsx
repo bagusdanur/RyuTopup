@@ -165,24 +165,52 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   
   const totalPrice = Math.max((selectedItem?.price || 0) + (selectedPayment?.fee || 0) - discountAmount, 0);
 
-  const passes = data.items.filter((item: any) => item.isPass);
-  const regularItems = data.items.filter((item: any) => !item.isPass);
+  // Filter out unwanted items like "CEK USERNAME"
+  const validItems = data.items.filter((item: any) => !item.name.toUpperCase().includes("CEK USERNAME"));
+
+  // Fallback check for passes/bundles if DB isPass is false
+  const isItemPass = (item: any) => {
+    if (item.isPass) return true;
+    const nameUpper = item.name.toUpperCase();
+    return nameUpper.includes("PASS") || nameUpper.includes("MEMBER") || nameUpper.includes("BUNDLE") || nameUpper.includes("STARLIGHT");
+  };
+
+  const passes = validItems.filter(isItemPass).sort((a: any, b: any) => a.price - b.price);
+  const regularItems = validItems.filter((item: any) => !isItemPass(item)).sort((a: any, b: any) => a.price - b.price);
 
   const shortenName = (name: string) => {
-    let shortened = name.toUpperCase();
+    let shortened = name;
     const gameUpper = data.name.toUpperCase();
-    // Remove exact game name
-    if (shortened.startsWith(gameUpper)) {
+    const nameUpper = shortened.toUpperCase();
+    
+    // Remove exact game name prefix
+    if (nameUpper.startsWith(gameUpper)) {
       shortened = shortened.substring(gameUpper.length).trim();
     }
-    // Hardcoded removal for specific common clutter
-    shortened = shortened.replace(/MOBILE LEGENDS:? BANG BANG/gi, "").trim();
+    
+    // Remove specific common clutter
+    shortened = shortened.replace(/MOBILE LEGENDS:?\s*BANG BANG/gi, "").trim();
     shortened = shortened.replace(/MOBILE LEGENDS/gi, "").trim();
-    shortened = shortened.replace(/\(INDONESIA\)|\(GLOBAL\)|\(ID\)/gi, "").trim();
+    shortened = shortened.replace(/\(INDONESIA\)|\(GLOBAL\)|\(ID\)|\(REGION INDONESIA\)/gi, "").trim();
     shortened = shortened.replace(/^-+|-+$/g, "").trim(); // remove leftover dashes
     
-    // If it ends up empty (unlikely), fallback to original
-    return shortened || name.toUpperCase();
+    if (!shortened) return name; // fallback if empty
+    
+    // Convert to Title Case for better readability
+    const words = shortened.toLowerCase().split(' ');
+    for (let i = 0; i < words.length; i++) {
+      if (words[i]) {
+        words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+      }
+    }
+    shortened = words.join(' ');
+    
+    // Fix specific uppercase acronyms
+    shortened = shortened.replace(/\bWdp\b/g, "WDP");
+    shortened = shortened.replace(/\bVip\b/g, "VIP");
+    shortened = shortened.replace(/\bMcl\b/g, "MCL");
+    
+    return shortened;
   };
 
   const handleInputChange = (fieldId: string, value: string) => {
@@ -635,7 +663,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                         }`}
                       >
                         {/* Item Name */}
-                        <span className={`text-[11px] md:text-[12px] uppercase tracking-wide leading-snug mb-3 pr-4 ${isSelected ? "text-black font-black" : "text-white/90 font-bold"}`}>
+                        <span className={`text-[13px] md:text-[14px] tracking-wide leading-snug mb-3 pr-4 ${isSelected ? "text-black font-black" : "text-white/90 font-bold"}`}>
                           {shortenName(item.name)}
                         </span>
 
@@ -692,7 +720,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
                         }`}
                       >
                         {/* Item Name */}
-                        <span className={`text-[11px] md:text-[12px] uppercase tracking-wide leading-snug mb-3 pr-4 ${isSelected ? "text-black font-black" : "text-white/90 font-bold"}`}>
+                        <span className={`text-[13px] md:text-[14px] tracking-wide leading-snug mb-3 pr-4 ${isSelected ? "text-black font-black" : "text-white/90 font-bold"}`}>
                           {shortenName(item.name)}
                         </span>
 
