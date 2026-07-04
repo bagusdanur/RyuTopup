@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TopupHeader from "@/components/TopupHeader";
@@ -154,6 +154,19 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
   const [isLoadingNickname, setIsLoadingNickname] = useState(false);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
+  const [providerBalance, setProviderBalance] = useState<number>(Infinity); // default Infinity = semua item tersedia
+  const [dynamicStockEnabled, setDynamicStockEnabled] = useState(false);
+
+  // Fetch saldo provider dari DB + status fitur dynamic stock
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/admin/settings?key=provider_balance").then(r => r.json()),
+      fetch("/api/admin/settings?key=enable_dynamic_stock").then(r => r.json()),
+    ]).then(([balanceData, stockData]) => {
+      if (balanceData?.value) setProviderBalance(parseInt(balanceData.value, 10));
+      setDynamicStockEnabled(stockData?.value === "true");
+    }).catch(() => {}); // Gagal = biarkan default (semua item tersedia)
+  }, []);
 
   const selectedItem = data.items.find((i: any) => i.id === activeItem);
   const selectedPayment = PAYMENT_METHODS.find((p) => p.id === activePayment);
@@ -549,6 +562,8 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
             setActiveItem={setActiveItem}
             setCheckoutError={setCheckoutError}
             shortenName={shortenName}
+            providerBalance={providerBalance}
+            dynamicStockEnabled={dynamicStockEnabled}
           />
 
           <TopupPaymentList

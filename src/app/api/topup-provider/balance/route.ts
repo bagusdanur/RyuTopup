@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkBalance } from '@/lib/topupProvider';
+import { supabaseServer } from '@/lib/supabaseServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +11,17 @@ export async function GET() {
     // VIP Reseller balance format:
     // { result: true, data: { balance: 0, ... } }
     if (data && data.result === true && data.data && data.data.balance !== undefined) {
+      const balance = data.data.balance;
+
+      // Simpan saldo terbaru ke site_settings
+      supabaseServer.from('site_settings').upsert(
+        { key: 'provider_balance', value: balance.toString() },
+        { onConflict: 'key' }
+      ).then(() => {}).catch((e: any) => console.error('[balance] Failed to save to DB:', e?.message));
+
       return NextResponse.json({
         success: true,
-        balance: data.data.balance
+        balance: balance
       });
     }
 

@@ -151,6 +151,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, message: 'Failed to update DB' }, { status: 500 });
     }
 
+    // Sync saldo provider ke database di background (tidak blocking response)
+    // Ini memastikan fitur Dynamic Stock selalu punya data saldo terbaru setelah transaksi
+    if (status === 'success' || status === 'error') {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      fetch(`${appUrl}/api/topup-provider/balance`)
+        .then(() => console.log('[WEBHOOK TOPUP2] Balance synced after transaction'))
+        .catch(e => console.error('[WEBHOOK TOPUP2] Failed to sync balance:', e?.message));
+    }
+
     return NextResponse.json({ success: true, message: 'Webhook processed' });
 
   } catch (error: any) {

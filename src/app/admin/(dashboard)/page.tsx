@@ -3,6 +3,7 @@ import { FiShoppingBag, FiDollarSign, FiClock, FiArrowRight } from "react-icons/
 import Link from "next/link";
 import ProviderBalanceWidget from "./ProviderBalanceWidget";
 import SocialProofToggle from "./SocialProofToggle";
+import DynamicStockToggle from "./DynamicStockToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +50,10 @@ export default async function AdminDashboardOverview() {
       const providerPrice = providerPriceMap.get(order.item_code) || 0;
       const priceBase = order.price_base || 0;
       const discount = order.discount_amount || 0;
-      
+
       // Keuntungan Bersih (Profit) = Harga Jual (Base) - Diskon - Harga Modal (Provider)
       const profit = (priceBase - discount) - providerPrice;
-      
+
       // Jika profit negatif karena diskon berlebihan atau modal naik, set ke 0 agar tidak minus di laporan
       return sum + Math.max(profit, 0);
     }, 0) || 0;
@@ -60,7 +61,7 @@ export default async function AdminDashboardOverview() {
   const totalSuccess = orders?.filter(o => o.topup_status === "success").length || 0;
   const totalPending = orders?.filter(o => o.topup_status === "processing" || o.topup_status === "pending").length || 0;
   const totalFailed = orders?.filter(o => o.topup_status === "failed").length || 0;
-  
+
   // Calculate today's revenue
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -110,12 +111,15 @@ export default async function AdminDashboardOverview() {
         </div>
       </div>
 
-      {/* STATS GRID */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">
+      {/* STATS GRID — Row 1: Controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
         <ProviderBalanceWidget />
-
         <SocialProofToggle />
+        <DynamicStockToggle />
+      </div>
 
+      {/* STATS GRID — Row 2: Numbers */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         <div className="bg-white text-black border-4 border-black p-4 md:p-6 shadow-neo-lg hover:translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#ff6b00] transition-all flex flex-col gap-2 md:gap-4">
           <div className="flex justify-between items-start">
             <span className="text-[9px] md:text-xs font-black uppercase tracking-widest bg-black text-white px-1.5 py-0.5 md:px-2 md:py-1">Pendapatan Total</span>
