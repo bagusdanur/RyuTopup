@@ -77,6 +77,19 @@ export async function POST(request: Request) {
           gameCode = 'valorant';
         }
 
+        if (isGenshin || isHSR) {
+          const zoneLower = zoneIdStr.toLowerCase();
+          if (zoneLower.includes("asia")) {
+            zoneIdStr = "os_asia";
+          } else if (zoneLower.includes("america") || zoneLower.includes("usa")) {
+            zoneIdStr = "os_usa";
+          } else if (zoneLower.includes("euro")) {
+            zoneIdStr = "os_euro";
+          } else if (zoneLower.includes("tw") || zoneLower.includes("hk") || zoneLower.includes("mo")) {
+            zoneIdStr = "os_cht";
+          }
+        }
+
         const { checkNickname } = await import('@/lib/topupProvider2');
         const res = await checkNickname(gameCode, userIdStr, zoneIdStr);
 

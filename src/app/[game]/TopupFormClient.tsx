@@ -237,10 +237,19 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     setNicknameError(null);
     setNickname(null);
 
-    let targetId = accountData.userId ? `${accountData.userId}(${accountData.zoneId||''})` : Object.values(accountData)[0]?.trim();
+    let targetId = "";
+    
+    if (accountData.userId && accountData.zoneId) {
+      targetId = `${accountData.userId}(${accountData.zoneId})`;
+    } else if (accountData.uid && accountData.server) {
+      targetId = `${accountData.uid}(${accountData.server})`;
+    } else {
+      // Fallback for single field games like Free Fire, Valorant, etc.
+      targetId = Object.values(accountData)[0]?.trim();
+    }
     
     if (!targetId || targetId.length < 3) {
-      setNicknameError("Harap isi User ID dengan benar");
+      setNicknameError("Harap isi Data Akun dengan benar");
       return;
     }
 
@@ -389,8 +398,14 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
       setIsLoadingNickname(true);
       setCheckoutError(null);
 
-      let targetId = accountData.userId ? `${accountData.userId}(${accountData.zoneId||''})` : Object.values(accountData)[0]?.trim();
-      
+      let targetId = "";
+      if (accountData.userId && accountData.zoneId) {
+        targetId = `${accountData.userId}(${accountData.zoneId})`;
+      } else if (accountData.uid && accountData.server) {
+        targetId = `${accountData.uid}(${accountData.server})`;
+      } else {
+        targetId = Object.values(accountData)[0]?.trim();
+      }      
       try {
         const response = await fetch("/api/check-nickname", {
           method: "POST",
@@ -430,7 +445,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     let formattedTargetId = "";
     if (gameId === "mobile-legends" || gameId === "magic-chess-gogo") {
       formattedTargetId = `${accountData.userId.trim()} (${accountData.zoneId.trim()})`;
-    } else if (gameId === "genshin-impact") {
+    } else if (gameId === "genshin-impact" || gameId === "honkai-star-rail") {
       formattedTargetId = `${accountData.uid.trim()} (${accountData.server.trim()})`;
     } else {
       formattedTargetId = Object.values(accountData)[0]?.trim() || "";
