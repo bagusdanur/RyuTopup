@@ -44,28 +44,37 @@ export async function POST(request: Request) {
 
     const isML = gameId.includes('ml') || gameId.includes('mobile-legends') || gameId.includes('mobile_legends');
     const isFF = gameId.includes('ff') || gameId.includes('free-fire') || gameId.includes('free_fire');
+    const isGenshin = gameId.includes('genshin');
+    const isHSR = gameId.includes('honkai') || gameId.includes('star-rail') || gameId.includes('starrail') || gameId.includes('hsr');
+    const isValorant = gameId.includes('valorant');
 
-    if (isML || isFF) {
+    if (isML || isFF || isGenshin || isHSR || isValorant) {
       try {
         let gameCode = '';
         let userIdStr = targetId;
         let zoneIdStr = '';
 
-        if (isML) {
-          gameCode = 'mobile-legends';
-          // Handle '12345678(1234)' format
-          const match = targetId.match(/^(\d+)(?:\(([^)]+)\))?$/);
+        // Parsing targetId format "userId(zoneId)"
+        if (targetId.includes('(') && targetId.includes(')')) {
+          const match = targetId.match(/^(.+?)(?:\(([^)]+)\))?$/);
           if (match) {
             userIdStr = match[1];
             if (match[2]) {
               zoneIdStr = match[2];
             }
-          } else if (targetId.includes('(')) {
-             userIdStr = targetId.split('(')[0];
-             zoneIdStr = targetId.split('(')[1].replace(')','');
           }
+        }
+
+        if (isML) {
+          gameCode = 'mobile-legends';
         } else if (isFF) {
-           gameCode = 'freefire';
+          gameCode = 'freefire';
+        } else if (isGenshin) {
+          gameCode = 'genshin-impact';
+        } else if (isHSR) {
+          gameCode = 'honkai-star-rail';
+        } else if (isValorant) {
+          gameCode = 'valorant';
         }
 
         const { checkNickname } = await import('@/lib/topupProvider2');
@@ -74,16 +83,12 @@ export async function POST(request: Request) {
         if (res.success) {
            nickname = res.nickname;
         } else {
-           return NextResponse.json({ success: false, error: res.message || "Gagal mengecek nickname. Pastikan ID benar." }, { status: 400 });
+           return NextResponse.json({ success: false, error: res.message || "Gagal mengecek nickname. Pastikan data akun benar." }, { status: 400 });
         }
       } catch (err) {
         console.error("Check nickname error:", err);
-        nickname = 'Player_' + targetId.substring(0, 4);
+        return NextResponse.json({ success: false, error: "Terjadi kesalahan sistem saat mengecek nickname." }, { status: 500 });
       }
-    } else if (gameId.includes('genshin')) {
-      nickname = 'Traveler_' + targetId.substring(0, 3);
-    } else if (gameId.includes('honkai') || gameId.includes('star-rail') || gameId.includes('starrail') || gameId.includes('hsr')) {
-      nickname = 'Trailblazer_' + targetId.substring(0, 3);
     } else {
       nickname = 'Player_' + targetId.substring(0, 4);
     }
