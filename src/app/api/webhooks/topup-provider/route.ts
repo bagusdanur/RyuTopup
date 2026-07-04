@@ -31,8 +31,6 @@ export async function POST(request: Request) {
     const apiKey = process.env.TOPUP2_API_KEY || '';
     const expectedSignature = crypto.createHash('md5').update(apiId + apiKey).digest('hex');
 
-    const isDev = process.env.TOPUP2_MODE === 'development';
-
     if (clientSignature !== expectedSignature) {
       console.warn('[WEBHOOK TOPUP2] Invalid signature mismatch');
       // In dev mode we might just log it, but in prod we must reject
