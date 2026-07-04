@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         let zoneIdStr = '';
 
         if (isML) {
-          gameCode = 'mobilelegend';
+          gameCode = 'mobile-legends';
           // Handle '12345678(1234)' format
           const match = targetId.match(/^(\d+)(?:\(([^)]+)\))?$/);
           if (match) {
