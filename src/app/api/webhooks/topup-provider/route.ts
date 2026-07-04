@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { sendEmail, generateTopupSuccessEmailHtml } from '@/lib/sendEmail';
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,18 @@ export async function POST(request: Request) {
       body = JSON.parse(rawBody);
     } catch (e) {
        return NextResponse.json({ success: false, message: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const headerList = request.headers;
+    const ip = headerList.get("x-forwarded-for")?.split(',')[0] || headerList.get("x-real-ip") || "127.0.0.1";
+    
+    // IP Whitelist dari provider (178.248.73.218)
+    const isDev = process.env.TOPUP2_MODE === 'development';
+    const allowedIps = ["178.248.73.218", "127.0.0.1", "::1", "103.103.22.251"];
+    
+    if (!isDev && !allowedIps.includes(ip.trim())) {
+      console.warn(`[WEBHOOK TOPUP2] Blocked request from unauthorized IP: ${ip}`);
+      return NextResponse.json({ success: false, message: 'Unauthorized IP' }, { status: 403 });
     }
 
     // Provider sends signature in headers: X-Client-Signature
@@ -59,19 +72,37 @@ export async function POST(request: Request) {
 
     // Map provider status to our DB status
     // provider status: 'waiting', 'processing', 'success', 'error'
-    let dbStatus = trx.status;
+    let dbStatus = trx.topup_status;
     
     if (status === 'success') {
        dbStatus = 'success';
+       // Trigger email 2 (Top-Up Success)
+       if (trx.email) {
+          const emailHtml = generateTopupSuccessEmailHtml(
+            trx.id,
+            trx.item_name || "Produk Game",
+            trx.username,
+            trx.target_id,
+            sn
+          );
+          sendEmail({
+            to: trx.email.trim(),
+            subject: `🎮 Top-Up Berhasil! Diamond sudah masuk #${trx.id}`,
+            html: emailHtml,
+          }).catch((e) => console.error("Failed to send topup success email:", e));
+       }
     } else if (status === 'error') {
        dbStatus = 'failed';
     } else if (status === 'processing') {
        dbStatus = 'processing';
     }
 
-    const updateData: any = { status: dbStatus };
+    const updateData: any = { topup_status: dbStatus };
     if (sn) {
-        updateData.sn = sn;
+        updateData.provider_sn = sn;
+    }
+    if (note) {
+        updateData.provider_message = note;
     }
 
     const { error: updateError } = await supabase

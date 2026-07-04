@@ -78,7 +78,7 @@ export async function processTopup(trxRef: string, skuCode: string, userId: stri
       success: true,
       data: {
         trxid: `DEV-${trxRef}`,
-        status: 'processing',
+        status: 'sukses', // Diubah menjadi sukses agar langsung selesai di UI
         price: 0,
         note: 'Mocked dev order'
       }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { sendEmail, generateSuccessEmailHtml } from "@/lib/sendEmail";
+import { sendEmail, generatePaymentReceivedEmailHtml } from "@/lib/sendEmail";
 import { processTopup } from "@/lib/topupProvider2";
 
 export async function POST(request: Request) {
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     // Fetch existing transaction to get email and item_name and target_id and buyer_sku_code
     const { data: trx } = await supabaseServer
       .from("topup_transactions")
-      .select("email, item_name, target_id, buyer_sku_code, topup_status, game_id, username, price_base, discount_amount")
+      .select("email, item_name, target_id, buyer_sku_code, topup_status, game_id, username, price_base, discount_amount, payment_method")
       .eq("id", order_id)
       .single();
 
@@ -36,8 +36,12 @@ export async function POST(request: Request) {
 
     let localStatus = "pending";
     
-    // Gunakan password rahasia untuk testing bypass
-    const isBypassed = bypass_pg_verify === "RAHASIA_TESTING_123";
+    // Get sender IP
+    const headerList = request.headers;
+    const ip = headerList.get("x-forwarded-for")?.split(',')[0] || headerList.get("x-real-ip") || "127.0.0.1";
+    
+    // Gunakan password rahasia untuk testing bypass DAN pastikan IP dari VPS kita
+    const isBypassed = bypass_pg_verify === "RAHASIA_TESTING_123" && (ip === "103.103.22.251" || ip === "127.0.0.1" || ip === "::1");
 
     if (pgMerchant && pgApiKey && !isBypassed) {
       const trxAmount = Math.max((trx.price_base || 0) - (trx.discount_amount || 0), 0);
@@ -169,10 +173,10 @@ export async function POST(request: Request) {
 
     // --- SEND SUCCESS EMAIL ---
     if (localStatus === "success" && trx.email) {
-      const emailHtml = generateSuccessEmailHtml(order_id, trx.item_name || "Produk Game", trx.username);
+      const emailHtml = generatePaymentReceivedEmailHtml(order_id, trx.item_name || "Produk Game", trx.username, trx.target_id, trx.payment_method);
       sendEmail({
         to: trx.email.trim(),
-        subject: `Pembayaran Berhasil #${order_id} - RyuTopup`,
+        subject: `✅ Pembayaran Diterima #${order_id} - RyuTopup`,
         html: emailHtml,
       }).catch((e) => console.error("Failed to send success email:", e));
     }

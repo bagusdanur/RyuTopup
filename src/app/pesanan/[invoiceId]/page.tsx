@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FiCopy, FiCheck, FiArrowRight, FiInfo, FiAlertCircle, FiChevronDown, FiChevronUp, FiDownload } from "react-icons/fi";
 import { FaSpinner } from "react-icons/fa";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import TopupHeader from "@/components/TopupHeader";
 import TopupFooter from "@/components/TopupFooter";
 import { GAME_DATA } from "@/lib/gameData";
@@ -329,7 +329,7 @@ export default function PesananPage() {
 
                     <div className="bg-white p-2.5 border-2 border-white rounded-none shadow-neo-sm relative overflow-hidden">
                       {order.pgPaymentNumber ? (
-                        <QRCodeSVG value={order.pgPaymentNumber} size={160} level="M" />
+                        <QRCodeCanvas id="qris-canvas" value={order.pgPaymentNumber} size={160} level="M" />
                       ) : (
                         <img src={qrDataUrl} alt="QRIS Code" className="w-[160px] h-[160px] object-contain" />
                       )}
@@ -337,24 +337,25 @@ export default function PesananPage() {
                     <button
                       onClick={() => {
                         if (order.pgPaymentNumber) {
-                           copyToClipboard(order.pgPaymentNumber, "qris-text");
+                           // Fitur Download QR Code
+                           const canvas = document.getElementById("qris-canvas") as HTMLCanvasElement;
+                           if (canvas) {
+                             const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                             let downloadLink = document.createElement("a");
+                             downloadLink.href = pngUrl;
+                             downloadLink.download = `qris-${order.invoiceId}.png`;
+                             document.body.appendChild(downloadLink);
+                             downloadLink.click();
+                             document.body.removeChild(downloadLink);
+                           }
                         } else {
                            window.open(qrDataUrl, "_blank");
                         }
                       }}
                       className="flex items-center gap-1.5 bg-white border-2 border-white text-black font-black text-[11px] px-3.5 py-2 rounded-none transition-all shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer uppercase tracking-wider"
                     >
-                      {order.pgPaymentNumber ? (
-                         <>
-                           {copiedText === "qris-text" ? <FiCheck className="w-3 h-3" /> : <FiCopy className="w-3 h-3" />}
-                           Salin String QRIS
-                         </>
-                      ) : (
-                         <>
-                           <FiDownload className="w-3 h-3" />
-                           Unduh QRIS
-                         </>
-                      )}
+                      <FiDownload className="w-3 h-3" />
+                      Download QR Code
                     </button>
                   </div>
                 )}

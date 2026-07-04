@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { sendEmail, generateInvoiceEmailHtml } from "@/lib/sendEmail";
 
+// Global rate limit map (memory based)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
 // Generate unique invoice ID in the format: RTP-YYYYMMDD-XXXXX
 function generateInvoiceId(): string {
   const jakartaDate = new Date();
@@ -47,6 +50,43 @@ export async function POST(request: Request) {
         { error: "Mohon lengkapi seluruh data transaksi." },
         { status: 400 }
       );
+    }
+
+    // Validasi Nomor WA (Hanya angka, mulai dari 08 atau 628, panjang 10-15 karakter)
+    const cleanWa = waNumber.replace(/\D/g, "");
+    if (!/^(08|628)\d{8,13}$/.test(cleanWa)) {
+      return NextResponse.json(
+        { error: "Nomor WhatsApp tidak valid. Gunakan format 08xxx atau 628xxx" },
+        { status: 400 }
+      );
+    }
+
+    // Rate Limiting (Mencegah spam dari IP yang sama)
+    const ip = request.headers.get("x-forwarded-for")?.split(',')[0] || request.headers.get("x-real-ip") || "127.0.0.1";
+    
+    // Check if IP is in rate limit map
+    const now = Date.now();
+    const limitWindowMs = 10 * 60 * 1000; // 10 menit
+    const maxRequests = 5;
+
+    let rateData = rateLimitMap.get(ip);
+    if (!rateData) {
+      rateData = { count: 1, resetTime: now + limitWindowMs };
+      rateLimitMap.set(ip, rateData);
+    } else {
+      if (now > rateData.resetTime) {
+        // Reset window
+        rateData.count = 1;
+        rateData.resetTime = now + limitWindowMs;
+      } else {
+        rateData.count++;
+        if (rateData.count > maxRequests) {
+          return NextResponse.json(
+            { error: "Terlalu banyak pesanan. Silakan coba lagi setelah 10 menit." },
+            { status: 429 }
+          );
+        }
+      }
     }
 
     const invoiceId = generateInvoiceId();
