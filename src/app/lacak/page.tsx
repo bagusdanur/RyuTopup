@@ -16,7 +16,6 @@ import {
 import { FaGamepad, FaSpinner } from "react-icons/fa";
 import TopupHeader from "@/components/TopupHeader";
 import TopupFooter from "@/components/TopupFooter";
-import { GAME_DATA } from "@/lib/gameData";
 
 // Mock data for predefined sample invoices
 interface TrackedOrder {
@@ -34,41 +33,6 @@ interface TrackedOrder {
   status: "pending" | "processing" | "success" | "failed";
 }
 
-const SAMPLE_ORDERS: Record<string, TrackedOrder> = {
-  "RTP-987213": {
-    invoiceId: "RTP-987213",
-    gameName: "Mobile Legends",
-    gameId: "mobile-legends",
-    item: "284 Diamonds (254 + 30 Bonus)",
-    targetId: "12345678 (2991)",
-    paymentMethod: "QRIS (ShopeePay)",
-    price: "Rp 84.500",
-    date: "20 Juni 2026, 15:30 WIB",
-    status: "success"
-  },
-  "RTP-776219": {
-    invoiceId: "RTP-776219",
-    gameName: "PUBG Mobile",
-    gameId: "pubg-mobile",
-    item: "325 Unknown Cash",
-    targetId: "5821904712",
-    paymentMethod: "GoPay",
-    price: "Rp 72.000",
-    date: "20 Juni 2026, 18:45 WIB",
-    status: "processing"
-  },
-  "RTP-312904": {
-    invoiceId: "RTP-312904",
-    gameName: "Genshin Impact",
-    gameId: "genshin-impact",
-    item: "Blessing of the Welkin Moon",
-    targetId: "802194122 (Asia)",
-    paymentMethod: "Mandiri Virtual Account",
-    price: "Rp 79.000",
-    date: "20 Juni 2026, 19:10 WIB",
-    status: "pending"
-  }
-};
 
 export default function LacakPesananPage() {
   const csWhatsapp = process.env.NEXT_PUBLIC_CS_WHATSAPP || "628123456789";
@@ -82,11 +46,6 @@ export default function LacakPesananPage() {
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
-
-  // Extract item icon from GAME_DATA
-  const gameData = searchedOrder ? GAME_DATA[searchedOrder.gameId] : null;
-  const itemData = gameData ? gameData.items.find((i: any) => i.name === searchedOrder?.item) : null;
-  const itemIcon = itemData?.icon;
 
   const handleSearch = async (invoiceId: string) => {
     const trimmedId = invoiceId.trim();
@@ -105,13 +64,7 @@ export default function LacakPesananPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        // Fallback to sample data for local testing if database doesn't have it
-        const upperId = trimmedId.toUpperCase();
-        if (SAMPLE_ORDERS[upperId]) {
-          setSearchedOrder(SAMPLE_ORDERS[upperId]);
-        } else {
-          setErrorMsg(data.error || "Pesanan tidak ditemukan.");
-        }
+        setErrorMsg(data.error || "Pesanan tidak ditemukan.");
       } else {
         setSearchedOrder(data);
         if (data.hasReviewed) setReviewSubmitted(true);
@@ -330,15 +283,6 @@ export default function LacakPesananPage() {
 
               <div className="flex justify-between items-start gap-4 text-white">
                 <div className="flex items-center gap-2">
-                  {itemIcon && (
-                    <span className="w-4 h-4 md:w-5 md:h-5 shrink-0 flex items-center justify-center">
-                      {typeof itemIcon === "string" && itemIcon.startsWith("http") ? (
-                        <img src={itemIcon} alt="" className="w-full h-full object-contain" />
-                      ) : (
-                        <span className="text-[12px] md:text-[14px]">{itemIcon}</span>
-                      )}
-                    </span>
-                  )}
                   <span className="uppercase tracking-wide">{searchedOrder.item}</span>
                 </div>
                 <span className="shrink-0 font-mono">{searchedOrder.price}</span>

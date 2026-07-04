@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FiGrid, FiBox, FiTag, FiShoppingCart, FiLogOut } from "react-icons/fi";
+import { FiGrid, FiBox, FiTag, FiShoppingCart, FiLogOut, FiTrendingUp } from "react-icons/fi";
 import AdminNotifier from "@/components/AdminNotifier";
 import AdminBottomNav from "@/components/AdminBottomNav";
 import { createClient } from "@/lib/supabase/server";
@@ -62,6 +62,10 @@ export default async function AdminLayout({
             <Link href="/admin" className="flex items-center gap-4 px-4 py-3.5 bg-black border-2 border-white hover:bg-accent hover:text-black hover:border-accent hover:translate-x-1 transition-all shadow-neo font-black text-sm uppercase tracking-wider group">
               <FiGrid className="w-5 h-5 group-hover:scale-110 transition-transform" />
               Dashboard
+            </Link>
+            <Link href="/admin/statistik" className="flex items-center gap-4 px-4 py-3.5 bg-black border-2 border-white hover:bg-cyan-500 hover:text-black hover:border-cyan-500 hover:translate-x-1 transition-all shadow-neo font-black text-sm uppercase tracking-wider group">
+              <FiTrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              Statistik
             </Link>
             <Link href="/admin/games" className="flex items-center gap-4 px-4 py-3.5 bg-black border-2 border-white hover:bg-accent-purple hover:text-black hover:border-accent-purple hover:translate-x-1 transition-all shadow-neo font-black text-sm uppercase tracking-wider group">
               <FiBox className="w-5 h-5 group-hover:scale-110 transition-transform" />

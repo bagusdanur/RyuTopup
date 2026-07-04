@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiGrid, FiBox, FiTag, FiShoppingCart, FiPercent, FiLogOut } from "react-icons/fi";
+import { FiGrid, FiBox, FiTag, FiShoppingCart, FiPercent, FiLogOut, FiTrendingUp } from "react-icons/fi";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: FiGrid, exact: true },
+  { href: "/admin/statistik", label: "Stats", icon: FiTrendingUp, exact: false },
   { href: "/admin/games", label: "Games", icon: FiBox, exact: false },
   { href: "/admin/products", label: "Harga", icon: FiTag, exact: false },
   { href: "/admin/orders", label: "Pesanan", icon: FiShoppingCart, exact: false, badge: true },
@@ -22,7 +23,7 @@ export default function AdminBottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black border-t-[3px] border-white safe-area-bottom">
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-6 h-16">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href, item.exact);
           const Icon = item.icon;
