@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const validatedPriceTotal = Math.max(validatedPriceBase + validatedPriceFee - validatedDiscount, 0);
+    let validatedPriceTotal = Math.max(validatedPriceBase + validatedPriceFee - validatedDiscount, 0);
 
     // --- PAYMENT GATEWAY INTEGRATION ---
     const pgUrl = process.env.PAYMENT_GATEWAY_URL;
@@ -162,6 +162,14 @@ export async function POST(request: Request) {
             pgPaymentNumber = pgData.payment.payment_number;
             pgExpiredAt = pgData.payment.expired_at;
             pgFee = pgData.payment.fee;
+            
+            // OVERRIDE local fee and total with Pakasir's actual calculated fee and total (including unique codes)
+            if (pgData.payment.fee !== undefined) {
+              validatedPriceFee = Number(pgData.payment.fee);
+            }
+            if (pgData.payment.total_payment !== undefined) {
+              validatedPriceTotal = Number(pgData.payment.total_payment);
+            }
           }
         } else {
           console.error("PG API Error:", await pgResponse.text());

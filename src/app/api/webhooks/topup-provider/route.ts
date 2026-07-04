@@ -1,108 +1,93 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-import { supabaseServer } from '@/lib/supabaseServer';
-import { sendEmail, generateSuccessEmailHtml } from '@/lib/sendEmail';
 
 export async function POST(request: Request) {
   try {
-    // Digiflazz sends the signature in x-hub-signature header
-    // The format is sha1=HMAC_SHA1(payload, secret)
-    const signatureHeader = request.headers.get('x-hub-signature') || request.headers.get('x-digiflazz-delivery');
-    const secret = process.env.TOPUP_PROVIDER_WEBHOOK_SECRET;
-
-    if (!secret) {
-      console.error("[Provider Webhook] Secret is not configured");
-      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
-    }
-
-    // We need the raw body for signature validation
     const rawBody = await request.text();
-    
-    // Validate signature if header exists
-    if (signatureHeader) {
-      const hmac = crypto.createHmac('sha1', secret);
-      const calculatedSignature = 'sha1=' + hmac.update(rawBody).digest('hex');
-      
-      if (signatureHeader !== calculatedSignature) {
-        console.error("[Provider Webhook] Invalid signature");
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (e) {
+       return NextResponse.json({ success: false, message: 'Invalid JSON' }, { status: 400 });
+    }
+
+    // Provider sends signature in headers: X-Client-Signature
+    const clientSignature = request.headers.get('x-client-signature');
+    const apiId = process.env.TOPUP2_API_ID || '';
+    const apiKey = process.env.TOPUP2_API_KEY || '';
+    const expectedSignature = crypto.createHash('md5').update(apiId + apiKey).digest('hex');
+
+    const isDev = process.env.TOPUP2_MODE === 'development';
+
+    if (clientSignature !== expectedSignature) {
+      console.warn('[WEBHOOK TOPUP2] Invalid signature mismatch');
+      // In dev mode we might just log it, but in prod we must reject
+      if (!isDev) {
+          return NextResponse.json({ success: false, message: 'Invalid signature' }, { status: 401 });
       }
-    } else {
-       console.warn("[Provider Webhook] No signature header found, proceeding with caution (dev mode only)");
-       if (process.env.NODE_ENV === 'production') {
-          return NextResponse.json({ error: "Missing signature" }, { status: 401 });
-       }
     }
 
-    const payload = JSON.parse(rawBody);
-    console.log("[Provider Webhook] Payload:", JSON.stringify(payload, null, 2));
-
-    // Digiflazz payload structure (data object)
-    const { data } = payload;
-    if (!data || !data.ref_id) {
-      return NextResponse.json({ error: "Invalid payload format" }, { status: 400 });
+    if (isDev) {
+       console.log('[DEV] Topup Provider Webhook Received:', body);
     }
 
-    const refId = data.ref_id;
-    // Our refId format is RTP-{order_id}
-    const orderId = refId.replace('RTP-', '');
-    const statusStr = data.status?.toLowerCase();
+    // Provider body schema:
+    // { trxid: '123', status: 'success'|'error', data: 'Voucher code/SN', service: 'ML 11', note: 'Success msg' }
+    const { trxid, status, data: sn, note } = body;
+
+    if (!trxid) {
+       return NextResponse.json({ success: false, message: 'Missing trxid' }, { status: 400 });
+    }
+
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Get the transaction by provider_ref_id
+    const { data: trx, error: trxError } = await supabase
+        .from('topup_transactions')
+        .select('*')
+        .eq('provider_ref_id', trxid)
+        .single();
+
+    if (trxError || !trx) {
+       console.log(`[WEBHOOK TOPUP2] Transaction with provider_ref_id ${trxid} not found.`);
+       return NextResponse.json({ success: false, message: 'Transaction not found' }, { status: 404 });
+    }
+
+    // Map provider status to our DB status
+    // provider status: 'waiting', 'processing', 'success', 'error'
+    let dbStatus = trx.status;
     
-    let localTopupStatus = "pending";
-    if (statusStr === "sukses") {
-      localTopupStatus = "success";
-    } else if (statusStr === "gagal") {
-      localTopupStatus = "failed";
-    } else if (statusStr === "pending") {
-      localTopupStatus = "processing";
-    } else {
-      localTopupStatus = statusStr;
+    if (status === 'success') {
+       dbStatus = 'success';
+    } else if (status === 'error') {
+       dbStatus = 'failed';
+    } else if (status === 'processing') {
+       dbStatus = 'processing';
     }
 
-    // Fetch existing transaction
-    const { data: trx } = await supabaseServer
-      .from("topup_transactions")
-      .select("email, item_name, topup_status")
-      .eq("id", orderId)
-      .single();
-
-    if (!trx) {
-       return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    const updateData: any = { status: dbStatus };
+    if (sn) {
+        updateData.sn = sn;
     }
 
-    if (trx.topup_status === "success" || trx.topup_status === "failed") {
-       // If it's already in final state, don't update it again
-       // return NextResponse.json({ message: "Transaction already finalized" });
+    const { error: updateError } = await supabase
+        .from('topup_transactions')
+        .update(updateData)
+        .eq('id', trx.id);
+
+    if (updateError) {
+        console.error(`[WEBHOOK TOPUP2] Failed to update transaction ${trx.id}`, updateError);
+        return NextResponse.json({ success: false, message: 'Failed to update DB' }, { status: 500 });
     }
 
-    // Update database
-    const { error } = await supabaseServer
-      .from("topup_transactions")
-      .update({
-        topup_status: localTopupStatus,
-        provider_trx_id: data.trx_id,
-        provider_sn: data.sn,
-        provider_message: data.message
-      })
-      .eq("id", orderId);
+    return NextResponse.json({ success: true, message: 'Webhook processed' });
 
-    if (error) {
-      console.error("[Provider Webhook] DB Update Error:", error);
-      return NextResponse.json({ error: "Failed to update database" }, { status: 500 });
-    }
-
-    // Send email notification to user
-    // Note: If payment was successful earlier, an email was already sent. 
-    // Here we could send a "Topup Berhasil" email if needed, but the original implementation 
-    // sent success email on payment webhook.
-    if (localTopupStatus === "success" && trx.email && trx.topup_status !== "success") {
-       // Optional: Send item delivery notification (with SN/Voucher code)
-       console.log(`[Provider Webhook] Item successfully delivered for ${orderId}`);
-    }
-
-    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("[Provider Webhook] Error processing webhook:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[WEBHOOK TOPUP2] Internal Error:', error);
+    return NextResponse.json({ success: false, message: 'Internal Server Error' }, { status: 500 });
   }
 }

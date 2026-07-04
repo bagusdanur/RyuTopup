@@ -46,46 +46,35 @@ export async function POST(request: Request) {
     const isFF = gameId.includes('ff') || gameId.includes('free-fire') || gameId.includes('free_fire');
 
     if (isML || isFF) {
-      const username = process.env.TOPUP_PROVIDER_USERNAME;
-      const apiKey = process.env.TOPUP_PROVIDER_API_KEY;
-
-      if (!username || !apiKey) {
-        return NextResponse.json({ success: false, error: 'Server belum dikonfigurasi untuk pengecekan' }, { status: 500 });
-      }
-
-      const refId = 'cek-' + Date.now() + Math.floor(Math.random() * 1000);
-      const rawString = `${username}${apiKey}${refId}`;
-      const sign = crypto.createHash('md5').update(rawString).digest('hex');
-      const skuCode = isML ? 'pre32531666' : 'pre32534099';
       try {
-        const res = await fetch('https://api.digiflazz.com/v1/transaction', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username,
-            buyer_sku_code: skuCode,
-            customer_no: targetId,
-            ref_id: refId,
-            sign,
-            testing: false // harus false agar benar-benar potong saldo Rp 5 untuk cek nama
-          })
-        });
+        let gameCode = '';
+        let userIdStr = targetId;
+        let zoneIdStr = '';
 
-        const json = await res.json();
-
-        // Digiflazz typically returns name in 'sn' or 'message' on success
-        if (json.data) {
-          if (json.data.sn && json.data.sn !== "") {
-            nickname = json.data.sn;
-          } else if (json.data.status === "Gagal" || (json.data.rc && json.data.rc !== "00")) {
-            return NextResponse.json({ success: false, error: json.data.message || "Gagal mengecek nickname. Pastikan ID benar." }, { status: 400 });
-          } else if (json.data.message && !json.data.message.includes('IP Anda')) {
-            nickname = json.data.message;
-          } else {
-            nickname = 'Player_' + targetId.substring(0, 4);
+        if (isML) {
+          gameCode = 'mobilelegend';
+          // Handle '12345678(1234)' format
+          const match = targetId.match(/^(\d+)(?:\(([^)]+)\))?$/);
+          if (match) {
+            userIdStr = match[1];
+            if (match[2]) {
+              zoneIdStr = match[2];
+            }
+          } else if (targetId.includes('(')) {
+             userIdStr = targetId.split('(')[0];
+             zoneIdStr = targetId.split('(')[1].replace(')','');
           }
+        } else if (isFF) {
+           gameCode = 'freefire';
+        }
+
+        const { checkNickname } = await import('@/lib/topupProvider2');
+        const res = await checkNickname(gameCode, userIdStr, zoneIdStr);
+
+        if (res.success) {
+           nickname = res.nickname;
         } else {
-          nickname = 'Player_' + targetId.substring(0, 4);
+           return NextResponse.json({ success: false, error: res.message || "Gagal mengecek nickname. Pastikan ID benar." }, { status: 400 });
         }
       } catch (err) {
         console.error("Check nickname error:", err);

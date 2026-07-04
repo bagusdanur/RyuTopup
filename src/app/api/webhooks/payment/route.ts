@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { sendEmail, generateSuccessEmailHtml } from "@/lib/sendEmail";
-import { processTopup } from "@/lib/topupProvider";
+import { processTopup } from "@/lib/topupProvider2";
 
 export async function POST(request: Request) {
   try {
@@ -107,9 +107,26 @@ export async function POST(request: Request) {
           const refId = `RTP-${order_id}`; // Unique Ref ID for provider
           
           const isNumericGame = trx.game_id && (trx.game_id.includes("mobile-legends") || trx.game_id.includes("mlbb") || trx.game_id.includes("free-fire"));
-          const cleanTargetId = isNumericGame ? trx.target_id.replace(/\D/g, "") : trx.target_id; 
           
-          const topupRes = await processTopup(refId, trx.buyer_sku_code, cleanTargetId);
+          let userId = trx.target_id;
+          let zoneId = '';
+          
+          if (trx.game_id && (trx.game_id.includes("mobile-legends") || trx.game_id.includes("mlbb"))) {
+             const match = trx.target_id.match(/^(\d+)(?:\(([^)]+)\))?$/);
+             if (match) {
+               userId = match[1];
+               if (match[2]) {
+                 zoneId = match[2];
+               }
+             } else if (trx.target_id.includes('(')) {
+               userId = trx.target_id.split('(')[0];
+               zoneId = trx.target_id.split('(')[1].replace(')','');
+             }
+          } else if (isNumericGame) {
+             userId = trx.target_id.replace(/\D/g, "");
+          }
+          
+          const topupRes = await processTopup(refId, trx.buyer_sku_code, userId, zoneId);
           
           console.log("[Auto-Topup] Provider Response:", JSON.stringify(topupRes));
 

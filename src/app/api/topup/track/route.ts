@@ -56,6 +56,9 @@ export async function GET(request: Request) {
       }) + " WIB",
       status: data.topup_status, // pending, processing, success, failed
       hasReviewed: !!reviewData,
+      pgPaymentNumber: data.pg_payment_number,
+      pgExpiredAt: data.pg_expired_at,
+      pgFee: data.pg_fee,
     };
 
     return NextResponse.json(responseData);
