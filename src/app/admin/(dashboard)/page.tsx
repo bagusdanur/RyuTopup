@@ -2,6 +2,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { FiShoppingBag, FiDollarSign, FiClock, FiArrowRight } from "react-icons/fi";
 import Link from "next/link";
 import ProviderBalanceWidget from "./ProviderBalanceWidget";
+import SocialProofToggle from "./SocialProofToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -110,8 +111,10 @@ export default async function AdminDashboardOverview() {
       </div>
 
       {/* STATS GRID */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">
         <ProviderBalanceWidget />
+
+        <SocialProofToggle />
 
         <div className="bg-white text-black border-4 border-black p-4 md:p-6 shadow-neo-lg hover:translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#ff6b00] transition-all flex flex-col gap-2 md:gap-4">
           <div className="flex justify-between items-start">

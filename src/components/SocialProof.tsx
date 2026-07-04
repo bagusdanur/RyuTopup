@@ -12,8 +12,21 @@ export default function SocialProof() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const [enabled, setEnabled] = useState<boolean | null>(null); // null = loading
+
+  // Cek setting ON/OFF dari admin
+  useEffect(() => {
+    fetch("/api/admin/settings?key=show_social_proof")
+      .then(r => r.json())
+      .then(d => {
+        // default ON jika belum ada setting
+        setEnabled(d.value !== "false");
+      })
+      .catch(() => setEnabled(true)); // fallback ON jika error
+  }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     // Fetch recent orders from our cached API
     const fetchOrders = async () => {
       try {
@@ -28,7 +41,7 @@ export default function SocialProof() {
     };
 
     fetchOrders();
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     if (orders.length === 0) return;
@@ -49,7 +62,8 @@ export default function SocialProof() {
     return () => clearInterval(interval);
   }, [orders]);
 
-  if (!isVisible || orders.length === 0) return null;
+  // Tidak tampil jika: setting OFF, loading, atau tidak ada data
+  if (enabled === false || !isVisible || orders.length === 0) return null;
 
   const currentOrder = orders[currentIndex];
 

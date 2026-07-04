@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { FiCopy, FiCheck, FiArrowRight, FiInfo, FiAlertCircle, FiChevronDown, FiChevronUp, FiDownload } from "react-icons/fi";
+import { FiCopy, FiCheck, FiArrowRight, FiInfo, FiAlertCircle, FiChevronDown, FiChevronUp, FiDownload, FiMaximize2 } from "react-icons/fi";
 import { FaSpinner } from "react-icons/fa";
 import { QRCodeCanvas } from "qrcode.react";
 import TopupHeader from "@/components/TopupHeader";
@@ -424,9 +424,10 @@ export default function PesananPage() {
                       {order.pgPaymentNumber && (
                         <button
                           onClick={() => setQrExpanded(true)}
-                          className="flex-1 flex items-center justify-center gap-1.5 bg-black border-2 border-white text-white font-black text-[11px] px-3 py-2.5 rounded-none transition-all shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer uppercase tracking-wider"
+                          className="flex-1 flex items-center justify-center gap-2 bg-black border-2 border-white text-white font-black text-xs px-3 py-3 rounded-none transition-all shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer uppercase tracking-wider"
                         >
-                          🔍 Perbesar
+                          <FiMaximize2 className="w-3.5 h-3.5" />
+                          Perbesar
                         </button>
                       )}
                       {/* Download button */}
@@ -438,7 +439,7 @@ export default function PesananPage() {
                             window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=40&data=RyuTopup-Invoice-${order.invoiceId}`, "_blank");
                           }
                         }}
-                        className="flex-1 flex items-center justify-center gap-1.5 bg-white border-2 border-white text-black font-black text-[11px] px-3 py-2.5 rounded-none transition-all shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer uppercase tracking-wider"
+                        className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-white text-black font-black text-xs px-3 py-3 rounded-none transition-all shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer uppercase tracking-wider"
                       >
                         <FiDownload className="w-3.5 h-3.5" />
                         Download QR
