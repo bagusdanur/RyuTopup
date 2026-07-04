@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import OrderActions from "./OrderActions";
+import ExportCsvButton from "./ExportCsvButton";
 
 export const dynamic = "force-dynamic";
 
@@ -69,15 +70,16 @@ export default async function AdminOrdersPage(props: {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* HEADER */}
-      <div className="border-b-2 border-white pb-4 flex justify-between items-end">
+      <div className="border-b-4 border-white pb-4 bg-accent p-6 text-black shadow-neo-lg flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black text-white uppercase tracking-wider">
-            Manajemen Pesanan
+          <h1 className="text-3xl font-black uppercase tracking-wider">
+            Riwayat Pesanan
           </h1>
-          <p className="text-white/60 font-bold text-xs mt-1">
-            Data ini ditarik secara real-time dari tabel <b>topup_transactions</b> Supabase Anda.
+          <p className="font-bold text-sm mt-1 opacity-80">
+            Daftar seluruh transaksi topup yang masuk ke sistem.
           </p>
         </div>
+        <ExportCsvButton />
       </div>
 
       {/* ORDERS TABLE */}

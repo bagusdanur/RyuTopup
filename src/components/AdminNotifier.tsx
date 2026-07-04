@@ -63,10 +63,10 @@ export default function AdminNotifier() {
           // Add to toast list
           const newToast: Toast = {
             id: newOrder.id,
-            invoiceId: newOrder.invoice_id,
-            game: newOrder.game_name,
-            amount: newOrder.total_amount 
-              ? `Rp ${newOrder.total_amount.toLocaleString("id-ID")}` 
+            invoiceId: newOrder.id, // we use 'id' as the invoice id
+            game: newOrder.game_id || "Unknown Game",
+            amount: newOrder.price_total 
+              ? `Rp ${newOrder.price_total.toLocaleString("id-ID")}` 
               : "Menunggu",
           };
           

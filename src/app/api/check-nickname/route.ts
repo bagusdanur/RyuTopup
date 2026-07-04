@@ -42,13 +42,16 @@ export async function POST(request: Request) {
 
     let nickname = '';
 
-    const isML = gameId.includes('ml') || gameId.includes('mobile-legends') || gameId.includes('mobile_legends');
+    const isML = gameId.includes('ml') || gameId.includes('mobile-legends') || gameId.includes('mobile_legends') || gameId.includes('magic-chess');
     const isFF = gameId.includes('ff') || gameId.includes('free-fire') || gameId.includes('free_fire');
     const isGenshin = gameId.includes('genshin');
     const isHSR = gameId.includes('honkai') || gameId.includes('star-rail') || gameId.includes('starrail') || gameId.includes('hsr');
     const isValorant = gameId.includes('valorant');
 
-    if (isML || isFF || isGenshin || isHSR || isValorant) {
+    const isHOK = gameId.includes('honor-of-kings') || gameId.includes('hok');
+    const isPUBG = gameId.includes('pubg');
+
+    if (isML || isFF || isGenshin || isHSR || isValorant || isHOK || isPUBG) {
       try {
         let gameCode = '';
         let userIdStr = targetId;
@@ -75,6 +78,10 @@ export async function POST(request: Request) {
           gameCode = 'honkai-star-rail';
         } else if (isValorant) {
           gameCode = 'valorant';
+        } else if (gameId.includes('honor-of-kings') || gameId.includes('hok')) {
+          gameCode = 'honor-of-kings';
+        } else if (gameId.includes('pubg')) {
+          gameCode = 'pubg-mobile';
         }
 
         if (isGenshin || isHSR) {

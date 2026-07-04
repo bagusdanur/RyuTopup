@@ -17,7 +17,31 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
     buyer_sku_code: "",
     provider_price: 0
   });
+
+  // States for Add Product
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({
+    name: "",
+    buyer_sku_code: "",
+    provider_price: 0,
+    price: 0,
+    original_price: 0,
+    discount: "",
+    icon: "",
+    is_pass: false,
+    is_flash_sale: false,
+    sort_order: 0
+  });
+
+  // States for Bulk Margin
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkForm, setBulkForm] = useState({
+    type: "fixed", // 'fixed' | 'percentage'
+    value: 0
+  });
+
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const router = useRouter();
 
   const handleEdit = (product: any) => {
@@ -66,19 +90,213 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
     router.refresh(); // Refresh Next.js server cache to reflect everywhere
   };
 
+  const handleAddProduct = async () => {
+    if (!addForm.name) return alert("Nama produk wajib diisi!");
+    if (addForm.price < addForm.provider_price) return alert("Harga jual tidak boleh lebih kecil dari harga modal!");
+
+    setIsSaving(true);
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .insert({
+        game_id: selectedGame,
+        ...addForm
+      })
+      .select()
+      .single();
+
+    setIsSaving(false);
+
+    if (error) {
+      alert("Gagal menambah produk: " + error.message);
+      return;
+    }
+
+    setProducts(prev => [data, ...prev]);
+    setShowAddModal(false);
+    setAddForm({
+      name: "", buyer_sku_code: "", provider_price: 0, price: 0, original_price: 0, discount: "", icon: "", is_pass: false, is_flash_sale: false, sort_order: 0
+    });
+    router.refresh();
+  };
+
+  const handleDeleteProduct = async (id: string, name: string) => {
+    if (!confirm(`YAKIN HAPUS PERMANEN PRODUK "${name}"?`)) return;
+    
+    setIsDeleting(id);
+    const supabase = createClient();
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    setIsDeleting(null);
+
+    if (error) {
+      alert("Gagal menghapus produk: " + error.message);
+      return;
+    }
+
+    setProducts(prev => prev.filter(p => p.id !== id));
+    router.refresh();
+  };
+
+  const toggleProductStatus = async (id: string, currentStatus: boolean) => {
+    const supabase = createClient();
+    const newStatus = !currentStatus;
+    
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, is_active: newStatus } : p));
+    const { error } = await supabase.from("products").update({ is_active: newStatus }).eq("id", id);
+
+    if (error) {
+      alert("Gagal mengubah status: " + error.message);
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, is_active: currentStatus } : p));
+    } else {
+      router.refresh();
+    }
+  };
+
+  const handleBulkMargin = async () => {
+    if (bulkForm.value <= 0) return alert("Nilai margin harus lebih dari 0");
+    if (!confirm("Update margin untuk SEMUA produk di game ini?")) return;
+
+    setIsSaving(true);
+    const supabase = createClient();
+
+    const currentGameProducts = products.filter(p => p.game_id === selectedGame);
+    
+    for (const p of currentGameProducts) {
+      const margin = bulkForm.type === "fixed" ? bulkForm.value : Math.round(p.provider_price * (bulkForm.value / 100));
+      const newPrice = p.provider_price + margin;
+      const newOriginalPrice = Math.round(newPrice / 0.9); // inflate by 10% for fake discount
+      const discount = "10% OFF";
+
+      await supabase.from("products").update({ price: newPrice, original_price: newOriginalPrice, discount }).eq("id", p.id);
+    }
+
+    setIsSaving(false);
+    setShowBulkModal(false);
+    alert("Berhasil update margin masal! (Harap refresh halaman untuk melihat perubahan jika ada yang terlewat cache)");
+    
+    // Hard reload to get new data
+    window.location.reload();
+  };
+
   const filteredProducts = products.filter(p => p.game_id === selectedGame);
 
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* HEADER */}
-      <div className="border-b-2 border-white pb-4">
-        <h1 className="text-2xl font-black text-white uppercase tracking-wider">
-          Kelola Harga & Diskon
-        </h1>
-        <p className="text-white/60 font-bold text-xs mt-1">
-          Pembaruan harga di sini akan langsung mengubah harga di website utama pengunjung secara instan (real-time).
-        </p>
+      <div className="border-b-4 border-white pb-4 bg-accent p-6 text-black shadow-neo-lg flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-black uppercase tracking-wider">
+            Kelola Harga & Diskon
+          </h1>
+          <p className="font-bold text-sm mt-1 opacity-80">
+            Pembaruan harga di sini akan langsung mengubah harga di website utama pengunjung secara instan (real-time).
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowBulkModal(true)}
+            className="bg-black text-white px-4 py-2 border-2 border-black font-black uppercase text-xs shadow-neo-sm hover:bg-white hover:text-black transition-all"
+          >
+            Update Margin Masal
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-black text-white px-4 py-2 border-2 border-black font-black uppercase text-xs shadow-neo-sm hover:bg-white hover:text-black transition-all"
+          >
+            + Tambah Produk
+          </button>
+        </div>
       </div>
+
+      {/* BULK MARGIN MODAL */}
+      {showBulkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#0a0a0a] border-4 border-accent p-6 w-full max-w-sm shadow-neo-lg text-white">
+            <h2 className="text-xl font-black uppercase tracking-wider text-accent mb-4 border-b-2 border-white/20 pb-2">Update Margin Masal</h2>
+            <p className="text-xs text-white/70 mb-4">Ubah harga jual SEMUA produk pada game ini berdasarkan persentase atau nominal flat dari harga modal (provider_price).</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold mb-1">Tipe Margin</label>
+                <select value={bulkForm.type} onChange={e => setBulkForm({...bulkForm, type: e.target.value})} className="w-full bg-black border-2 border-white p-2 outline-none">
+                  <option value="fixed">Rupiah Flat (Misal: + Rp 2.000)</option>
+                  <option value="percentage">Persentase (Misal: + 5%)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1">Nilai Margin</label>
+                <input type="number" value={bulkForm.value} onChange={e => setBulkForm({...bulkForm, value: Number(e.target.value)})} className="w-full bg-black border-2 border-white p-2 outline-none" />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setShowBulkModal(false)} className="px-4 py-2 text-xs font-bold border-2 border-white">Batal</button>
+              <button onClick={handleBulkMargin} disabled={isSaving} className="px-4 py-2 text-xs font-black bg-accent text-black border-2 border-accent">
+                {isSaving ? "Proses..." : "Terapkan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD PRODUCT MODAL */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#0a0a0a] border-4 border-accent p-6 w-full max-w-2xl shadow-neo-lg text-white max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <h2 className="text-xl font-black uppercase tracking-wider text-accent mb-4 border-b-2 border-white/20 pb-2">Tambah Produk Baru</h2>
+            
+            <div className="grid grid-cols-2 gap-4 text-xs font-bold">
+              <div className="col-span-2">
+                <label className="block mb-1">Nama Produk</label>
+                <input type="text" value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-black border-2 border-white p-2" placeholder="100 Diamonds" />
+              </div>
+              <div>
+                <label className="block mb-1">Kode SKU (VIP Reseller)</label>
+                <input type="text" value={addForm.buyer_sku_code} onChange={e => setAddForm({...addForm, buyer_sku_code: e.target.value})} className="w-full bg-black border-2 border-white p-2" placeholder="Biarkan kosong jika manual" />
+              </div>
+              <div>
+                <label className="block mb-1">URL Ikon (Logo Produk)</label>
+                <input type="text" value={addForm.icon} onChange={e => setAddForm({...addForm, icon: e.target.value})} className="w-full bg-black border-2 border-white p-2" placeholder="https://..." />
+              </div>
+              <div>
+                <label className="block mb-1 text-accent-red">Harga Modal (Rp)</label>
+                <input type="number" value={addForm.provider_price} onChange={e => setAddForm({...addForm, provider_price: Number(e.target.value)})} className="w-full bg-black border-2 border-white p-2" />
+              </div>
+              <div>
+                <label className="block mb-1 text-accent-green">Harga Jual (Rp)</label>
+                <input type="number" value={addForm.price} onChange={e => setAddForm({...addForm, price: Number(e.target.value)})} className="w-full bg-black border-2 border-white p-2" />
+              </div>
+              <div>
+                <label className="block mb-1">Harga Coret Asli (Rp)</label>
+                <input type="number" value={addForm.original_price} onChange={e => setAddForm({...addForm, original_price: Number(e.target.value)})} className="w-full bg-black border-2 border-white p-2" />
+              </div>
+              <div>
+                <label className="block mb-1">Label Diskon</label>
+                <input type="text" value={addForm.discount} onChange={e => setAddForm({...addForm, discount: e.target.value})} className="w-full bg-black border-2 border-white p-2" placeholder="Contoh: 10% OFF" />
+              </div>
+              <div>
+                <label className="block mb-1">Urutan Tampil (Sort Order)</label>
+                <input type="number" value={addForm.sort_order} onChange={e => setAddForm({...addForm, sort_order: Number(e.target.value)})} className="w-full bg-black border-2 border-white p-2" />
+              </div>
+              <div className="flex flex-col gap-2 justify-center pt-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={addForm.is_pass} onChange={e => setAddForm({...addForm, is_pass: e.target.checked})} className="w-4 h-4" />
+                  Membership / Pass?
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={addForm.is_flash_sale} onChange={e => setAddForm({...addForm, is_flash_sale: e.target.checked})} className="w-4 h-4" />
+                  Ikut Flash Sale?
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setShowAddModal(false)} className="px-6 py-2 font-bold border-2 border-white uppercase">Batal</button>
+              <button onClick={handleAddProduct} disabled={isSaving} className="px-6 py-2 font-black bg-accent text-black border-2 border-accent uppercase">
+                {isSaving ? "Simpan..." : "Simpan Produk"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* GAME SELECTOR */}
       <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
@@ -108,8 +326,8 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
               <th className="pb-3 px-2 w-32">Harga Jual (Rp)</th>
               <th className="pb-3 px-2 w-32">Harga Coret (Rp)</th>
               <th className="pb-3 px-2 w-24">Label Diskon</th>
-              <th className="pb-3 px-2 w-24 text-center">Flash Sale?</th>
-              <th className="pb-3 px-2 text-right w-24">Aksi</th>
+              <th className="pb-3 px-2 w-16 text-center">Status</th>
+              <th className="pb-3 px-2 text-center w-28">Aksi</th>
             </tr>
           </thead>
           <tbody className="text-xs font-bold text-white">
@@ -237,23 +455,21 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
                   </td>
 
                   <td className="py-4 px-2 text-center">
-                    {isEditing ? (
-                      <input
-                        type="checkbox"
-                        checked={editForm.is_flash_sale}
-                        onChange={(e) => setEditForm({ ...editForm, is_flash_sale: e.target.checked })}
-                        className="w-4 h-4 accent-accent"
-                      />
-                    ) : (
-                      <span className={`font-black uppercase text-[10px] ${p.is_flash_sale ? "text-accent" : "text-white/30"}`}>
-                        {p.is_flash_sale ? "YA" : "TIDAK"}
-                      </span>
-                    )}
+                    <button
+                      onClick={() => toggleProductStatus(p.id, p.is_active)}
+                      disabled={isEditing}
+                      className={`px-2 py-1 text-[9px] font-black uppercase border border-white ${p.is_active ? "bg-accent-green text-black" : "bg-accent-red text-white"}`}
+                    >
+                      {p.is_active ? "Aktif" : "Mati"}
+                    </button>
+                    <div className="mt-1">
+                      {p.is_flash_sale && <span className="text-[8px] bg-accent text-black px-1 font-bold">⚡ FLASH</span>}
+                    </div>
                   </td>
 
-                  <td className="py-4 px-2 text-right">
+                  <td className="py-4 px-2 text-center">
                     {isEditing ? (
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-center gap-1">
                         <button
                           onClick={() => handleSave(p.id)}
                           disabled={isSaving}
@@ -272,13 +488,23 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => handleEdit(p)}
-                        className="bg-black text-white p-1.5 border-2 border-white shadow-neo-sm hover:bg-white hover:text-black hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
-                        title="Edit Harga"
-                      >
-                        <FiEdit2 />
-                      </button>
+                      <div className="flex justify-center gap-1">
+                        <button
+                          onClick={() => handleEdit(p)}
+                          className="bg-black text-white p-1.5 border border-white hover:bg-white hover:text-black transition-all"
+                          title="Edit Harga"
+                        >
+                          <FiEdit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(p.id, p.name)}
+                          disabled={isDeleting === p.id}
+                          className="bg-accent-red text-white p-1.5 border border-white hover:bg-white hover:text-black transition-all disabled:opacity-50"
+                          title="Hapus Produk"
+                        >
+                          <FiX className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

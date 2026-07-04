@@ -23,6 +23,15 @@ export default function TopupProductInfo({ gameName }: ProductInfoProps) {
   } else if (nameLower.includes("valorant")) {
     description = `Top up Valorant Points hanya dalam hitungan detik! Cukup masukan Riot ID Anda, pilih nominal VP, selesaikan pembayaran, dan VP akan langsung masuk.`;
     warning = "⚠️ PASTIKAN RIOT ID (CONTOH: NAMA#TAG) YANG DIMASUKKAN SUDAH BENAR SEBELUM MELAKUKAN TOP UP.";
+  } else if (nameLower.includes("honor of kings") || nameLower.includes("hok")) {
+    description = `Top up Tokens & Weekly Pass ${gameName} hanya dalam hitungan detik! Cukup masukan Player ID Anda, pilih item yang diinginkan, selesaikan pembayaran, dan item akan langsung masuk.`;
+    warning = "⚠️ PASTIKAN PLAYER ID YANG DIMASUKKAN SUDAH BENAR SEBELUM MELAKUKAN TOP UP.";
+  } else if (nameLower.includes("magic chess")) {
+    description = `Top up Diamond & Weekly Pass ${gameName} hanya dalam hitungan detik! Cukup masukan ID dan Server Anda, pilih item yang diinginkan, selesaikan pembayaran, dan item akan langsung masuk ke akun Anda secara otomatis.`;
+    warning = "⚠️ PASTIKAN ID DAN SERVER (ZONE ID) YANG DIMASUKKAN SUDAH BENAR SEBELUM MELAKUKAN TOP UP.";
+  } else if (nameLower.includes("pubg")) {
+    description = `Top up UC ${gameName} hanya dalam hitungan detik! Cukup masukan Player ID Anda, pilih jumlah UC yang diinginkan, selesaikan pembayaran, dan UC akan langsung masuk ke akun Anda.`;
+    warning = "⚠️ PASTIKAN PLAYER ID YANG DIMASUKKAN SUDAH BENAR SEBELUM MELAKUKAN TOP UP.";
   }
 
   return (

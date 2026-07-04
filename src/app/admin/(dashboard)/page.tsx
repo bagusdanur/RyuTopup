@@ -58,6 +58,31 @@ export default async function AdminDashboardOverview() {
 
   const totalSuccess = orders?.filter(o => o.topup_status === "success").length || 0;
   const totalPending = orders?.filter(o => o.topup_status === "processing" || o.topup_status === "pending").length || 0;
+  const totalFailed = orders?.filter(o => o.topup_status === "failed").length || 0;
+  
+  // Calculate today's revenue
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const totalRevenueToday = orders
+    ?.filter(o => o.payment_status === "success" && new Date(o.created_at) >= today)
+    .reduce((sum, order) => {
+      const providerPrice = providerPriceMap.get(order.item_code) || 0;
+      const profit = ((order.price_base || 0) - (order.discount_amount || 0)) - providerPrice;
+      return sum + Math.max(profit, 0);
+    }, 0) || 0;
+
+  // Calculate top games
+  const gameCounts: Record<string, number> = {};
+  orders?.filter(o => o.topup_status === "success").forEach(o => {
+    if (o.game_id) {
+      gameCounts[o.game_id] = (gameCounts[o.game_id] || 0) + 1;
+    }
+  });
+  const topGames = Object.entries(gameCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([game, count]) => ({ game, count }));
+
   const recentOrders = orders?.slice(0, 5) || [];
 
   const formatDate = (iso: string) => {
@@ -90,16 +115,16 @@ export default async function AdminDashboardOverview() {
 
         <div className="bg-white text-black border-4 border-black p-4 md:p-6 shadow-neo-lg hover:translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#ff6b00] transition-all flex flex-col gap-2 md:gap-4">
           <div className="flex justify-between items-start">
-            <span className="text-[9px] md:text-xs font-black uppercase tracking-widest bg-black text-white px-1.5 py-0.5 md:px-2 md:py-1">Pendapatan</span>
+            <span className="text-[9px] md:text-xs font-black uppercase tracking-widest bg-black text-white px-1.5 py-0.5 md:px-2 md:py-1">Pendapatan Total</span>
             <span className="bg-accent-orange text-black p-1.5 md:p-2 border-2 border-black hidden sm:block">
               <FiDollarSign className="w-4 h-4 md:w-5 md:h-5" />
             </span>
           </div>
-          <span className="text-lg md:text-4xl font-black font-mono tracking-tighter leading-tight">
+          <span className="text-lg md:text-3xl font-black font-mono tracking-tighter leading-tight">
             Rp {totalRevenue.toLocaleString("id-ID")}
           </span>
           <span className="text-[9px] md:text-xs font-bold text-accent-green flex items-center gap-1 uppercase tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse"></span>Real-time
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse"></span> Hari Ini: Rp {totalRevenueToday.toLocaleString("id-ID")}
           </span>
         </div>
 
@@ -114,18 +139,49 @@ export default async function AdminDashboardOverview() {
           <span className="text-[9px] md:text-xs font-bold text-black/50 uppercase tracking-wide">Transaksi Selesai</span>
         </div>
 
-        <div className="bg-white text-black border-4 border-black p-4 md:p-6 shadow-neo-lg hover:translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#ef4444] transition-all flex flex-col gap-2 md:gap-4 relative overflow-hidden col-span-2 lg:col-span-1">
+        <div className="bg-white text-black border-4 border-black p-4 md:p-6 shadow-neo-lg hover:translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_#ef4444] transition-all flex flex-col gap-2 md:gap-4 relative overflow-hidden">
           {totalPending > 0 && (
             <div className="absolute top-0 right-0 w-16 h-16 bg-accent-red transform rotate-45 translate-x-8 -translate-y-8"></div>
           )}
           <div className="flex justify-between items-start relative z-10">
-            <span className="text-[9px] md:text-xs font-black uppercase tracking-widest bg-black text-white px-1.5 py-0.5 md:px-2 md:py-1">Perlu Tindakan</span>
+            <span className="text-[9px] md:text-xs font-black uppercase tracking-widest bg-black text-white px-1.5 py-0.5 md:px-2 md:py-1">Perhatian</span>
             <span className="bg-accent-red text-white p-1.5 md:p-2 border-2 border-black animate-bounce hidden sm:block">
               <FiClock className="w-4 h-4 md:w-5 md:h-5" />
             </span>
           </div>
-          <span className="text-3xl md:text-4xl font-black font-mono tracking-tighter text-accent-red relative z-10">{totalPending}</span>
-          <span className="text-[9px] md:text-xs font-bold text-accent-red uppercase tracking-wide relative z-10">Pesanan Pending</span>
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col">
+              <span className="text-2xl md:text-4xl font-black font-mono tracking-tighter text-accent-red relative z-10">{totalPending}</span>
+              <span className="text-[9px] md:text-xs font-bold text-accent-red uppercase tracking-wide relative z-10">Pending</span>
+            </div>
+            <div className="flex flex-col text-right">
+              <span className="text-xl md:text-2xl font-black font-mono tracking-tighter text-black/40 relative z-10">{totalFailed}</span>
+              <span className="text-[8px] md:text-[10px] font-bold text-black/40 uppercase tracking-wide relative z-10">Gagal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TOP GAMES LIST */}
+      <div className="bg-black border-4 border-accent p-4 md:p-6 shadow-neo-lg flex flex-col sm:flex-row gap-6">
+        <div className="w-full sm:w-1/3">
+          <h2 className="text-xl font-black text-white uppercase tracking-wider mb-2 text-accent">TOP GAMES</h2>
+          <p className="text-xs text-white/50 font-bold mb-4">Game paling laris terjual sepanjang masa berdasarkan transaksi sukses.</p>
+        </div>
+        <div className="w-full sm:w-2/3 flex flex-wrap gap-4">
+          {topGames.length === 0 ? (
+            <span className="text-white/50 text-sm font-bold uppercase">Belum ada data penjualan.</span>
+          ) : (
+            topGames.map((tg, i) => (
+              <div key={tg.game} className="bg-[#111] border-2 border-white/20 p-4 flex gap-4 items-center flex-1 min-w-[200px]">
+                <div className="text-3xl font-black text-white/10 italic">#{i + 1}</div>
+                <div>
+                  <div className="text-white font-black uppercase">{tg.game.replace(/-/g, " ")}</div>
+                  <div className="text-accent text-xs font-bold">{tg.count} Terjual</div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

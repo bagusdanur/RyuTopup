@@ -9,8 +9,18 @@ export default function GamesClient({ initialGames }: { initialGames: any[] }) {
   const [games, setGames] = useState(initialGames);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", developer: "", logo: "", cover: "" });
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", developer: "", logo: "", cover: "", preset: "ff" });
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const router = useRouter();
+
+  const PRESET_FIELDS: Record<string, any[]> = {
+    ml: [{ id: "uid", label: "User ID", placeholder: "123456789" }, { id: "server", label: "Zone ID", placeholder: "1234" }],
+    ff: [{ id: "uid", label: "Player ID", placeholder: "123456789" }],
+    genshin: [{ id: "uid", label: "UID", placeholder: "800000000" }, { id: "server", label: "Server", placeholder: "Asia" }],
+    custom: [{ id: "uid", label: "ID Akun", placeholder: "12345678" }]
+  };
 
   const handleEdit = (game: any) => {
     setEditingId(game.id);
@@ -51,6 +61,58 @@ export default function GamesClient({ initialGames }: { initialGames: any[] }) {
       )
     );
     setEditingId(null);
+    setEditingId(null);
+    router.refresh();
+  };
+
+  const handleAdd = async () => {
+    if (!addForm.name) return alert("Nama game harus diisi");
+    
+    setIsSaving(true);
+    const supabase = createClient();
+    const slug = addForm.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+    
+    const { data, error } = await supabase
+      .from("games")
+      .insert({
+        name: addForm.name,
+        slug: slug,
+        developer: addForm.developer,
+        logo: addForm.logo,
+        cover: addForm.cover,
+        fields: PRESET_FIELDS[addForm.preset] || PRESET_FIELDS.custom,
+        is_active: true
+      })
+      .select()
+      .single();
+
+    setIsSaving(false);
+
+    if (error) {
+      alert("Gagal menambah game: " + error.message);
+      return;
+    }
+
+    setGames((prev) => [data, ...prev]);
+    setShowAddModal(false);
+    setAddForm({ name: "", developer: "", logo: "", cover: "", preset: "ff" });
+    router.refresh();
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`YAKIN HAPUS PERMANEN GAME "${name}"? Semua produk di dalamnya juga akan terhapus.`)) return;
+    
+    setIsDeleting(id);
+    const supabase = createClient();
+    const { error } = await supabase.from("games").delete().eq("id", id);
+    setIsDeleting(null);
+
+    if (error) {
+      alert("Gagal menghapus game: " + error.message);
+      return;
+    }
+
+    setGames((prev) => prev.filter((g) => g.id !== id));
     router.refresh();
   };
 
@@ -86,14 +148,69 @@ export default function GamesClient({ initialGames }: { initialGames: any[] }) {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* HEADER */}
-      <div className="border-b-4 border-white pb-4 bg-accent p-6 text-black shadow-neo-lg">
-        <h1 className="text-3xl font-black uppercase tracking-wider">
-          Kelola Game
-        </h1>
-        <p className="font-bold text-sm mt-1 opacity-80">
-          Ubah nama, publisher, dan gambar (logo/cover) dari game yang ada. Nonaktifkan game jika sedang gangguan.
-        </p>
+      <div className="border-b-4 border-white pb-4 bg-accent p-6 text-black shadow-neo-lg flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-black uppercase tracking-wider">
+            Kelola Game
+          </h1>
+          <p className="font-bold text-sm mt-1 opacity-80">
+            Ubah nama, publisher, dan gambar (logo/cover) dari game yang ada. Nonaktifkan game jika sedang gangguan.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="bg-black text-white px-6 py-3 border-4 border-black font-black uppercase shadow-neo hover:bg-white hover:text-black transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+        >
+          + Tambah Game
+        </button>
       </div>
+
+      {/* ADD MODAL */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#0a0a0a] border-4 border-accent p-6 w-full max-w-lg shadow-neo-lg text-white">
+            <h2 className="text-2xl font-black uppercase tracking-wider text-accent mb-6 border-b-2 border-white/20 pb-4">Tambah Game Baru</h2>
+            
+            <div className="space-y-4 font-bold text-sm">
+              <div>
+                <label className="block text-white/70 mb-1">Nama Game</label>
+                <input type="text" value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-black border-2 border-white p-3 focus:border-accent outline-none transition-colors" placeholder="Contoh: Mobile Legends" />
+              </div>
+              <div>
+                <label className="block text-white/70 mb-1">Developer / Publisher</label>
+                <input type="text" value={addForm.developer} onChange={e => setAddForm({...addForm, developer: e.target.value})} className="w-full bg-black border-2 border-white p-3 focus:border-accent outline-none transition-colors" placeholder="Contoh: Moonton" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white/70 mb-1">URL Logo (Topup Page)</label>
+                  <textarea value={addForm.logo} onChange={e => setAddForm({...addForm, logo: e.target.value})} className="w-full bg-black border-2 border-white p-3 h-20 focus:border-accent outline-none transition-colors" placeholder="https://..." />
+                </div>
+                <div>
+                  <label className="block text-white/70 mb-1">URL Cover (Beranda)</label>
+                  <textarea value={addForm.cover} onChange={e => setAddForm({...addForm, cover: e.target.value})} className="w-full bg-black border-2 border-white p-3 h-20 focus:border-accent outline-none transition-colors" placeholder="https://..." />
+                </div>
+              </div>
+              <div>
+                <label className="block text-white/70 mb-1">Gaya Input Form Pelanggan</label>
+                <select value={addForm.preset} onChange={e => setAddForm({...addForm, preset: e.target.value})} className="w-full bg-black border-2 border-white p-3 focus:border-accent outline-none transition-colors cursor-pointer text-white">
+                  <option value="ml">Mobile Legends (User ID + Zone ID)</option>
+                  <option value="genshin">Genshin/HSR (UID + Server Dropdown)</option>
+                  <option value="ff">Free Fire/PUBG/Valorant (Hanya Player ID 1 Kolom)</option>
+                  <option value="custom">Lainnya (ID Akun Default)</option>
+                </select>
+                <p className="text-xs text-white/50 mt-1 font-normal">Gaya form input yang akan ditampilkan saat pembeli klik game ini.</p>
+              </div>
+            </div>
+
+            <div className="mt-8 flex gap-4 justify-end">
+              <button onClick={() => setShowAddModal(false)} className="px-6 py-2 border-2 border-white hover:bg-white hover:text-black font-black uppercase transition-all">Batal</button>
+              <button onClick={handleAdd} disabled={isSaving} className="px-6 py-2 bg-accent text-black border-2 border-accent hover:bg-accent-hover font-black uppercase transition-all flex items-center gap-2">
+                {isSaving ? "Menyimpan..." : "Simpan Game"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* GAMES TABLE */}
       <div className="bg-black border-4 border-white p-6 shadow-neo-lg overflow-x-auto rounded-none">
@@ -220,13 +337,23 @@ export default function GamesClient({ initialGames }: { initialGames: any[] }) {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => handleEdit(g)}
-                        className="bg-white text-black px-4 py-2 border-2 border-black font-black text-xs uppercase shadow-neo-sm hover:bg-accent hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all flex items-center justify-center mx-auto"
-                        title="Edit Data"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => handleEdit(g)}
+                          className="bg-white text-black p-2 border-2 border-black shadow-neo-sm hover:bg-accent hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                          title="Edit Data"
+                        >
+                          <FiEdit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(g.id, g.name)}
+                          disabled={isDeleting === g.id}
+                          className="bg-accent-red text-white p-2 border-2 border-black shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all disabled:opacity-50"
+                          title="Hapus Game"
+                        >
+                          <FiX className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
