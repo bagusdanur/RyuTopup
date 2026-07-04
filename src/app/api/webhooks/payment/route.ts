@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     console.log(JSON.stringify(body, null, 2));
     
     // Generic destructuring to accommodate various PG payloads
-    const { order_id, status } = body;
+    const { order_id, status, bypass_pg_verify } = body;
 
     if (!order_id || !status) {
       console.log("WEBHOOK GAGAL: order_id atau status tidak ditemukan di payload");
@@ -35,8 +35,9 @@ export async function POST(request: Request) {
     const pgUrl = process.env.PAYMENT_GATEWAY_URL || "https://app.pakasir.com/api";
 
     let localStatus = "pending";
+    const isDev = process.env.NODE_ENV !== "production";
 
-    if (pgMerchant && pgApiKey) {
+    if (pgMerchant && pgApiKey && !(isDev && bypass_pg_verify)) {
       const trxAmount = Math.max((trx.price_base || 0) - (trx.discount_amount || 0), 0);
       const verifyUrl = `${pgUrl}/transactiondetail?project=${pgMerchant}&amount=${trxAmount}&order_id=${order_id}&api_key=${pgApiKey}`;
       
