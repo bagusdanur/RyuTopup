@@ -79,6 +79,8 @@ export default async function TopupGamePage({ params }: PageProps) {
       name: p.name,
       price: Number(p.price),
       originalPrice: Number(p.original_price),
+      original_price: Number(p.original_price),
+      provider_price: Number(p.provider_price) || 0,
       discount: p.discount,
       icon: p.icon,
       isPass: p.is_pass,
