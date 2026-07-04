@@ -47,6 +47,7 @@ export default function PesananPage() {
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [qrExpanded, setQrExpanded] = useState(false);
 
   const handleSubmitReview = async () => {
     if (!order) return;
@@ -122,6 +123,37 @@ export default function PesananPage() {
     navigator.clipboard.writeText(text);
     setCopiedText(label);
     setTimeout(() => setCopiedText(null), 2000);
+  };
+
+  // Download QR dengan padding putih di sekelilingnya agar mudah discan
+  const downloadQRWithPadding = (canvasId: string, filename: string) => {
+    const qrCanvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    if (!qrCanvas) return;
+
+    const padding = 48; // px putih di setiap sisi
+    const newSize = qrCanvas.width + padding * 2;
+
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = newSize;
+    exportCanvas.height = newSize;
+
+    const ctx = exportCanvas.getContext("2d");
+    if (!ctx) return;
+
+    // Fill background putih
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, newSize, newSize);
+
+    // Tempel QR code di tengah dengan padding
+    ctx.drawImage(qrCanvas, padding, padding);
+
+    const pngUrl = exportCanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+    const a = document.createElement("a");
+    a.href = pngUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const formatDate = (isoString?: string, fallback: string = "") => {
@@ -316,47 +348,104 @@ export default function PesananPage() {
             return (
               <div className="space-y-4 animate-fadeIn">
                 
+                {/* QR FULLSCREEN MODAL */}
+                {qrExpanded && order.pgPaymentNumber && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+                    onClick={() => setQrExpanded(false)}
+                  >
+                    <div
+                      className="bg-white p-6 flex flex-col items-center gap-4 max-w-sm w-full relative shadow-2xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => setQrExpanded(false)}
+                        className="absolute top-3 right-3 text-black bg-white border-2 border-black w-7 h-7 flex items-center justify-center font-black text-sm hover:bg-black hover:text-white transition-colors cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                      <p className="text-black text-xs font-black uppercase tracking-wider">Scan QRIS Ini</p>
+                      <QRCodeCanvas
+                        id="qris-canvas-large"
+                        value={order.pgPaymentNumber}
+                        size={280}
+                        level="M"
+                        className="border-4 border-white"
+                      />
+                      <p className="text-black/60 text-[10px] font-bold text-center">
+                        Tap di luar atau tekan ✕ untuk menutup
+                      </p>
+                      <button
+                        onClick={() => downloadQRWithPadding("qris-canvas-large", `qris-${order.invoiceId}.png`)}
+                        className="w-full flex items-center justify-center gap-2 bg-black text-white border-2 border-black font-black text-xs px-4 py-2.5 uppercase tracking-wider hover:bg-white hover:text-black transition-colors cursor-pointer"
+                      >
+                        <FiDownload className="w-3.5 h-3.5" />
+                        Download QRIS
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* DYNAMIC QRIS DISPLAY (If QRIS & pending) */}
                 {order.status === "pending" && payInfo.type === "qris" && (
-                  <div className="bg-black border-2 border-white p-4 flex flex-col items-center gap-3 text-center shadow-neo rounded-none">
+                  <div className="bg-black border-2 border-white p-5 flex flex-col items-center gap-4 text-center shadow-neo rounded-none">
                     <h4 className="text-xs font-black uppercase text-white/70 tracking-wider">Scan Kode QRIS</h4>
-                    
+
                     {order.pgExpiredAt && (
                       <span className="text-[10px] text-accent-orange font-black uppercase tracking-wider block bg-accent-orange/10 px-3 py-1 border border-accent-orange">
                         Batas Bayar: {formatDate(order.pgExpiredAt)}
                       </span>
                     )}
 
-                    <div className="bg-white p-2.5 border-2 border-white rounded-none shadow-neo-sm relative overflow-hidden">
+                    {/* QR Code — diperbesar */}
+                    <div
+                      className="bg-white p-3 border-2 border-white rounded-none shadow-neo-sm cursor-zoom-in relative group"
+                      onClick={() => order.pgPaymentNumber && setQrExpanded(true)}
+                      title="Klik untuk perbesar"
+                    >
                       {order.pgPaymentNumber ? (
-                        <QRCodeCanvas id="qris-canvas" value={order.pgPaymentNumber} size={160} level="M" />
+                        <>
+                          <QRCodeCanvas id="qris-canvas" value={order.pgPaymentNumber} size={240} level="M" />
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 flex items-center justify-center transition-all pointer-events-none">
+                            <span className="opacity-0 group-hover:opacity-100 bg-black text-white text-[10px] font-black px-2 py-1 uppercase tracking-wider transition-all">
+                              Perbesar
+                            </span>
+                          </div>
+                        </>
                       ) : (
-                        <img src={qrDataUrl} alt="QRIS Code" className="w-[160px] h-[160px] object-contain" />
+                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=RyuTopup-Invoice-${order.invoiceId}`} alt="QRIS Code" className="w-[240px] h-[240px] object-contain" />
                       )}
                     </div>
-                    <button
-                      onClick={() => {
-                        if (order.pgPaymentNumber) {
-                           // Fitur Download QR Code
-                           const canvas = document.getElementById("qris-canvas") as HTMLCanvasElement;
-                           if (canvas) {
-                             const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-                             let downloadLink = document.createElement("a");
-                             downloadLink.href = pngUrl;
-                             downloadLink.download = `qris-${order.invoiceId}.png`;
-                             document.body.appendChild(downloadLink);
-                             downloadLink.click();
-                             document.body.removeChild(downloadLink);
-                           }
-                        } else {
-                           window.open(qrDataUrl, "_blank");
-                        }
-                      }}
-                      className="flex items-center gap-1.5 bg-white border-2 border-white text-black font-black text-[11px] px-3.5 py-2 rounded-none transition-all shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer uppercase tracking-wider"
-                    >
-                      <FiDownload className="w-3 h-3" />
-                      Download QR Code
-                    </button>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 w-full">
+                      {/* Perbesar button */}
+                      {order.pgPaymentNumber && (
+                        <button
+                          onClick={() => setQrExpanded(true)}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-black border-2 border-white text-white font-black text-[11px] px-3 py-2.5 rounded-none transition-all shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer uppercase tracking-wider"
+                        >
+                          🔍 Perbesar
+                        </button>
+                      )}
+                      {/* Download button */}
+                      <button
+                        onClick={() => {
+                          if (order.pgPaymentNumber) {
+                            downloadQRWithPadding("qris-canvas", `qris-${order.invoiceId}.png`);
+                          } else {
+                            window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=40&data=RyuTopup-Invoice-${order.invoiceId}`, "_blank");
+                          }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-white border-2 border-white text-black font-black text-[11px] px-3 py-2.5 rounded-none transition-all shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer uppercase tracking-wider"
+                      >
+                        <FiDownload className="w-3.5 h-3.5" />
+                        Download QR
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-white/40 font-bold">Klik QR atau tombol Perbesar untuk scan lebih mudah</p>
                   </div>
                 )}
 
