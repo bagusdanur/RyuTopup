@@ -13,11 +13,17 @@ export async function GET() {
     if (data && data.result === true && data.data && data.data.balance !== undefined) {
       const balance = data.data.balance;
 
-      // Simpan saldo terbaru ke site_settings
-      supabaseServer.from('site_settings').upsert(
-        { key: 'provider_balance', value: balance.toString() },
-        { onConflict: 'key' }
-      ).then(() => {}).catch((e: any) => console.error('[balance] Failed to save to DB:', e?.message));
+      // Simpan saldo terbaru ke site_settings (background, tidak blocking)
+      ;(async () => {
+        try {
+          await supabaseServer.from('site_settings').upsert(
+            { key: 'provider_balance', value: balance.toString() },
+            { onConflict: 'key' }
+          );
+        } catch (e: any) {
+          console.error('[balance] Failed to save to DB:', e?.message);
+        }
+      })();
 
       return NextResponse.json({
         success: true,
