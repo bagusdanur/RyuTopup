@@ -24,7 +24,7 @@ function StatusBadge({ status }: { status: string }) {
 export default async function AdminDashboardOverview() {
   const { data: orders, error } = await supabaseServer
     .from("topup_transactions")
-    .select("price_total, payment_status, topup_status, id, game_id, item_name, target_id, payment_method, created_at")
+    .select("price_total, price_base, discount_amount, item_code, payment_status, topup_status, id, game_id, item_name, target_id, payment_method, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -35,9 +35,26 @@ export default async function AdminDashboardOverview() {
     );
   }
 
+  // Fetch provider_price for all products to calculate true profit
+  const { data: products } = await supabaseServer.from("products").select("id, provider_price");
+  const providerPriceMap = new Map();
+  if (products) {
+    products.forEach(p => providerPriceMap.set(p.id, p.provider_price || 0));
+  }
+
   const totalRevenue = orders
     ?.filter(o => o.payment_status === "success")
-    .reduce((sum, order) => sum + (order.price_total || 0), 0) || 0;
+    .reduce((sum, order) => {
+      const providerPrice = providerPriceMap.get(order.item_code) || 0;
+      const priceBase = order.price_base || 0;
+      const discount = order.discount_amount || 0;
+      
+      // Keuntungan Bersih (Profit) = Harga Jual (Base) - Diskon - Harga Modal (Provider)
+      const profit = (priceBase - discount) - providerPrice;
+      
+      // Jika profit negatif karena diskon berlebihan atau modal naik, set ke 0 agar tidak minus di laporan
+      return sum + Math.max(profit, 0);
+    }, 0) || 0;
 
   const totalSuccess = orders?.filter(o => o.topup_status === "success").length || 0;
   const totalPending = orders?.filter(o => o.topup_status === "processing" || o.topup_status === "pending").length || 0;

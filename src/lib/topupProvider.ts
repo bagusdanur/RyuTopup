@@ -21,23 +21,29 @@ export function generateSign(refId: string): string {
   return crypto.createHash('md5').update(rawString).digest('hex');
 }
 
-// Check balance
+// Check balance for VIP Reseller (Provider 2)
 export async function checkBalance() {
-  const { username } = getConfig();
-  const sign = generateSign('depo');
+  // We use VIP reseller for Provider 2
+  const apiId = process.env.TOPUP2_API_ID;
+  const apiKey = process.env.TOPUP2_API_KEY;
+
+  if (!apiId || !apiKey) {
+    throw new Error("VIP Reseller API ID/KEY missing for checking balance.");
+  }
+
+  const sign = crypto.createHash('md5').update(apiId + apiKey).digest('hex');
+  const payload = new URLSearchParams({
+      key: apiKey,
+      sign,
+  });
 
   try {
-    const response = await fetch(`${API_URL}/cek-saldo`, {
+    const response = await fetch('https://vip-reseller.co.id/api/profile', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        cmd: 'deposit',
-        username,
-        sign,
-      }),
-      // no cache for balance
+      body: payload.toString(),
       cache: 'no-store',
     });
 

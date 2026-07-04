@@ -212,11 +212,12 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
                           if (match) {
                             const discountPercent = parseFloat(match[1]);
                             if (discountPercent > 0 && discountPercent < 100) {
-                              // Use the current price as the original baseline if original_price hasn't been set yet
-                              const basePrice = newOriginalPrice > 0 ? newOriginalPrice : editForm.price;
-                              newOriginalPrice = basePrice;
-                              newPrice = Math.round(basePrice * (1 - (discountPercent / 100)));
+                              // Fake discount: keep the selling price the same, inflate the original price
+                              newOriginalPrice = Math.round(newPrice / (1 - (discountPercent / 100)));
                             }
+                          } else if (val.trim() === "") {
+                              // If they clear the discount, remove original price
+                              newOriginalPrice = newPrice;
                           }
 
                           setEditForm({ ...editForm, discount: val, price: newPrice, original_price: newOriginalPrice });

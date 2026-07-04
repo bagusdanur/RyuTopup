@@ -7,8 +7,16 @@ export async function GET() {
   try {
     const data = await checkBalance();
     
-    // Asumsikan struktur data balasan Digiflazz:
-    // { data: { deposit: 1000000 } }
+    // VIP Reseller balance format:
+    // { result: true, data: { balance: 0, ... } }
+    if (data && data.result === true && data.data && data.data.balance !== undefined) {
+      return NextResponse.json({
+        success: true,
+        balance: data.data.balance
+      });
+    }
+
+    // Digiflazz fallback if still using digiflazz
     if (data && data.data && data.data.deposit !== undefined) {
       return NextResponse.json({
         success: true,
