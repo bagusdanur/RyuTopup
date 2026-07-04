@@ -22,22 +22,7 @@ export default function OrderActions({ order }: { order: any }) {
     <>
       <div className="flex justify-end gap-1.5">
         
-        {order.topup_status === 'processing' && (
-          <button 
-            onClick={() => handleUpdate('success')} 
-            disabled={isPending}
-            className="bg-accent-orange text-black p-1.5 border-2 border-accent-orange shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all text-[10px] uppercase font-black px-2 flex items-center gap-1 disabled:opacity-50 cursor-pointer"
-          >
-            {isPending ? (
-              "Memproses..."
-            ) : (
-              <>
-                <FiSend className="w-3 h-3" />
-                Kirim Diamond
-              </>
-            )}
-          </button>
-        )}
+
         
         <button 
           onClick={() => setShowDetail(true)}

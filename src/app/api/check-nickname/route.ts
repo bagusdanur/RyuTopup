@@ -97,7 +97,7 @@ export async function POST(request: Request) {
           }
         }
 
-        const { checkNickname } = await import('@/lib/topupProvider2');
+        const { checkNickname } = await import('@/lib/topupProvider');
         const res = await checkNickname(gameCode, userIdStr, zoneIdStr);
 
         if (res.success) {

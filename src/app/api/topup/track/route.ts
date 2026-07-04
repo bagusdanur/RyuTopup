@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     // Map database fields back to the frontend shape
     const responseData = {
       invoiceId: data.id,
-      gameName: data.game_id.replace("-", " ").toUpperCase(),
+      gameName: data.game_id.replace(/-/g, " ").toUpperCase(),
       gameId: data.game_id,
       item: data.item_name,
       targetId: data.target_id,
@@ -54,7 +54,9 @@ export async function GET(request: Request) {
         dateStyle: "medium",
         timeStyle: "short",
       }) + " WIB",
-      status: data.topup_status, // pending, processing, success, failed
+      status: data.payment_status === "failed" ? "failed" 
+           : (data.payment_status === "success" && data.topup_status === "pending") ? "processing" 
+           : data.topup_status, // pending, processing, success, failed
       hasReviewed: !!reviewData,
       pgPaymentNumber: data.pg_payment_number,
       pgExpiredAt: data.pg_expired_at,

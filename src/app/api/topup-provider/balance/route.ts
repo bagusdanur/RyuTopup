@@ -16,14 +16,6 @@ export async function GET() {
       });
     }
 
-    // Digiflazz fallback if still using digiflazz
-    if (data && data.data && data.data.deposit !== undefined) {
-      return NextResponse.json({
-        success: true,
-        balance: data.data.deposit
-      });
-    }
-
     return NextResponse.json({
       success: false,
       error: 'Format data tidak sesuai dari provider',

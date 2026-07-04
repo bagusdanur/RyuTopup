@@ -45,7 +45,7 @@ export default async function AdminOrdersPage(props: {
     if (topupStatus === 'failed' || paymentStatus === 'failed' || paymentStatus === 'expired' || paymentStatus === 'cancelled') {
       return (
         <span className="bg-accent-red text-white px-3 py-1.5 text-[10px] font-black uppercase border-2 border-accent-red shadow-neo-sm text-center inline-block min-w-[90px]">
-          Batal
+          Transaksi Gagal
         </span>
       );
     }

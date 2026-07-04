@@ -147,7 +147,7 @@ export default function PesananPage() {
       case "success":
         return "Berhasil";
       case "failed":
-        return "Gagal";
+        return "Transaksi Gagal";
       default:
         return status;
     }

@@ -455,16 +455,32 @@ export default function ProductsClient({ initialGames, initialProducts }: { init
                   </td>
 
                   <td className="py-4 px-2 text-center">
-                    <button
-                      onClick={() => toggleProductStatus(p.id, p.is_active)}
-                      disabled={isEditing}
-                      className={`px-2 py-1 text-[9px] font-black uppercase border border-white ${p.is_active ? "bg-accent-green text-black" : "bg-accent-red text-white"}`}
-                    >
-                      {p.is_active ? "Aktif" : "Mati"}
-                    </button>
-                    <div className="mt-1">
-                      {p.is_flash_sale && <span className="text-[8px] bg-accent text-black px-1 font-bold">⚡ FLASH</span>}
-                    </div>
+                    {isEditing ? (
+                      <div className="flex flex-col gap-2 items-center justify-center h-full">
+                        <label className="text-[9px] flex items-center gap-1 cursor-pointer font-bold">
+                          <input 
+                            type="checkbox" 
+                            checked={editForm.is_flash_sale}
+                            onChange={(e) => setEditForm({...editForm, is_flash_sale: e.target.checked})}
+                            className="w-3 h-3"
+                          />
+                          ⚡ Flash Sale
+                        </label>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => toggleProductStatus(p.id, p.is_active)}
+                          disabled={isEditing}
+                          className={`px-2 py-1 text-[9px] font-black uppercase border border-white ${p.is_active ? "bg-accent-green text-black" : "bg-accent-red text-white"}`}
+                        >
+                          {p.is_active ? "Aktif" : "Mati"}
+                        </button>
+                        <div className="mt-1">
+                          {p.is_flash_sale && <span className="text-[8px] bg-accent text-black px-1 font-bold">⚡ FLASH</span>}
+                        </div>
+                      </>
+                    )}
                   </td>
 
                   <td className="py-4 px-2 text-center">

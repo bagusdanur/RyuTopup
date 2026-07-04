@@ -107,16 +107,8 @@ export async function POST(request: Request) {
 
     const validatedPriceBase = Number(productData.price);
 
-    // 2. SECURE SERVER-SIDE VALIDATION OF PAYMENT FEES
-    let validatedPriceFee = 2500; // default VA fee
-    const cleanMethod = paymentMethod.toLowerCase();
-    if (cleanMethod === "qris") {
-      validatedPriceFee = 0;
-    } else if (["shopeepay", "gopay", "dana", "ovo"].includes(cleanMethod)) {
-      validatedPriceFee = cleanMethod === "shopeepay" ? 1200 : 1000;
-    } else if (["bni", "bri", "mandiri", "bsi", "danamon", "cimb", "bnc"].includes(cleanMethod)) {
-      validatedPriceFee = 2500;
-    }
+    // Default fee — will be overridden by Pakasir PG response if configured
+    let validatedPriceFee = 0;
 
     // 3. SECURE SERVER-SIDE VALIDATION OF PROMO CODES
     let validatedDiscount = 0;
@@ -149,11 +141,7 @@ export async function POST(request: Request) {
             validatedDiscount = validatedPriceBase - 1; // at least pay Rp 1
           }
 
-          // Securely update promo quota/usage on checkout creation
-          await supabaseServer
-            .from("promo_codes")
-            .update({ used: promoData.used + 1 })
-            .eq("id", promoData.id);
+          // Promo validation passed successfully. Quota is updated upon payment success.
         }
       }
     }

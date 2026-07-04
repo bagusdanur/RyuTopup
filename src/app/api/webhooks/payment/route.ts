@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { sendEmail, generatePaymentReceivedEmailHtml } from "@/lib/sendEmail";
-import { processTopup } from "@/lib/topupProvider2";
+import { processTopup } from "@/lib/topupProvider";
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     // Fetch existing transaction to get email and item_name and target_id and buyer_sku_code
     const { data: trx } = await supabaseServer
       .from("topup_transactions")
-      .select("email, item_name, target_id, buyer_sku_code, topup_status, game_id, username, price_base, discount_amount, payment_method")
+      .select("email, item_name, target_id, buyer_sku_code, topup_status, game_id, username, price_base, discount_amount, payment_method, promo_code")
       .eq("id", order_id)
       .single();
 
@@ -41,7 +41,8 @@ export async function POST(request: Request) {
     const ip = headerList.get("x-forwarded-for")?.split(',')[0] || headerList.get("x-real-ip") || "127.0.0.1";
     
     // Gunakan password rahasia untuk testing bypass DAN pastikan IP dari VPS kita
-    const isBypassed = bypass_pg_verify === "RAHASIA_TESTING_123" && (ip === "103.103.22.251" || ip === "127.0.0.1" || ip === "::1");
+    const webhookBypassSecret = process.env.WEBHOOK_BYPASS_SECRET;
+    const isBypassed = webhookBypassSecret && bypass_pg_verify === webhookBypassSecret && (ip === "103.103.22.251" || ip === "127.0.0.1" || ip === "::1");
 
     if (pgMerchant && pgApiKey && !isBypassed) {
       const trxAmount = Math.max((trx.price_base || 0) - (trx.discount_amount || 0), 0);
@@ -107,28 +108,91 @@ export async function POST(request: Request) {
 
     // --- AUTO TOPUP INTEGRATION ---
     if (localStatus === "success" && trx.topup_status === "pending") {
+      // Securely update promo quota on payment success
+      if (trx.promo_code) {
+        try {
+          // Atomic increment: use raw SQL via rpc or direct update with filter
+          // This avoids race conditions by letting the database handle the increment
+          const { error: promoError } = await supabaseServer
+            .rpc('increment_promo_used', { promo_code_input: trx.promo_code.toUpperCase() });
+          
+          // Fallback if RPC doesn't exist: use non-atomic update (better than nothing)
+          if (promoError) {
+            console.warn("RPC increment_promo_used not found, falling back to non-atomic update:", promoError.message);
+            const { data: promoData } = await supabaseServer
+              .from("promo_codes")
+              .select("id, used")
+              .eq("code", trx.promo_code.toUpperCase())
+              .maybeSingle();
+
+            if (promoData) {
+              await supabaseServer
+                .from("promo_codes")
+                .update({ used: promoData.used + 1 })
+                .eq("id", promoData.id);
+            }
+          }
+        } catch (promoErr) {
+          console.error("Failed to update promo usage on webhook success:", promoErr);
+        }
+      }
+
       // Only trigger if we have a buyer_sku_code
       if (trx.buyer_sku_code && trx.target_id) {
         try {
           console.log(`[Auto-Topup] Triggering topup for Order ${order_id} with SKU ${trx.buyer_sku_code}`);
           const refId = `RTP-${order_id}`; // Unique Ref ID for provider
           
-          const isNumericGame = trx.game_id && (trx.game_id.includes("mobile-legends") || trx.game_id.includes("mlbb") || trx.game_id.includes("free-fire"));
+          const isNumericGame = trx.game_id && (
+            trx.game_id.includes("free-fire") || 
+            trx.game_id.includes("pubg") || 
+            trx.game_id.includes("honor-of-kings") || 
+            trx.game_id.includes("hok")
+          );
           
-          let userId = trx.target_id;
+          const isHoyoGame = trx.game_id && (
+            trx.game_id.includes("genshin") || 
+            trx.game_id.includes("star-rail") || 
+            trx.game_id.includes("hsr")
+          );
+          
+          const isValorant = trx.game_id && trx.game_id.includes("valorant");
+          
+          let userId = trx.target_id.trim();
           let zoneId = '';
           
-          if (trx.game_id && (trx.game_id.includes("mobile-legends") || trx.game_id.includes("mlbb"))) {
-             const match = trx.target_id.match(/^(\d+)(?:\(([^)]+)\))?$/);
+          if (trx.game_id && (trx.game_id.includes("mobile-legends") || trx.game_id.includes("mlbb") || trx.game_id.includes("magic-chess"))) {
+             const match = trx.target_id.match(/^([^(]+)(?:\(([^)]+)\))?$/);
              if (match) {
-               userId = match[1];
+               userId = match[1].trim().replace(/\D/g, "");
                if (match[2]) {
-                 zoneId = match[2];
+                 zoneId = match[2].trim().replace(/\D/g, "");
                }
              } else if (trx.target_id.includes('(')) {
-               userId = trx.target_id.split('(')[0];
-               zoneId = trx.target_id.split('(')[1].replace(')','');
+               userId = trx.target_id.split('(')[0].trim().replace(/\D/g, "");
+               zoneId = trx.target_id.split('(')[1].replace(')','').trim().replace(/\D/g, "");
+             } else {
+               userId = trx.target_id.trim().replace(/\D/g, "");
              }
+          } else if (isHoyoGame) {
+             // Genshin/HSR: extract UID and map server name to VIP Reseller zone codes
+             const match = trx.target_id.match(/^([^(]+)(?:\(([^)]+)\))?$/);
+             if (match) {
+               userId = match[1].trim().replace(/\D/g, "");
+               if (match[2]) {
+                 const serverName = match[2].trim().toLowerCase();
+                 if (serverName.includes("asia")) zoneId = "os_asia";
+                 else if (serverName.includes("america") || serverName.includes("usa")) zoneId = "os_usa";
+                 else if (serverName.includes("euro")) zoneId = "os_euro";
+                 else if (serverName.includes("tw") || serverName.includes("hk") || serverName.includes("mo")) zoneId = "os_cht";
+                 else zoneId = serverName; // Pass raw value as fallback
+               }
+             } else {
+               userId = trx.target_id.replace(/\D/g, "");
+             }
+          } else if (isValorant) {
+             // Valorant uses Riot ID (Username#Tag) — keep as-is, don't strip non-numeric
+             userId = trx.target_id.trim();
           } else if (isNumericGame) {
              userId = trx.target_id.replace(/\D/g, "");
           }
@@ -136,23 +200,30 @@ export async function POST(request: Request) {
           const topupRes = await processTopup(refId, trx.buyer_sku_code, userId, zoneId);
           
           console.log("[Auto-Topup] Provider Response:", JSON.stringify(topupRes));
-
+ 
           let finalTopupStatus = "processing";
-          const providerStatus = topupRes?.data?.status?.toLowerCase();
+          let providerMsg = "Memproses transaksi ke provider";
           
-          if (providerStatus === "sukses") {
-            finalTopupStatus = "success";
-          } else if (providerStatus === "gagal") {
+          if (topupRes.success) {
+            const providerStatus = topupRes?.data?.status?.toLowerCase();
+            if (providerStatus === "sukses") {
+              finalTopupStatus = "success";
+            } else if (providerStatus === "gagal") {
+              finalTopupStatus = "failed";
+            }
+            providerMsg = topupRes?.data?.note || providerMsg;
+          } else {
             finalTopupStatus = "failed";
+            providerMsg = topupRes?.message || "Gagal mengirim ke provider";
           }
-
+ 
           // Save provider reference ID and immediate status to database
           await supabaseServer
             .from("topup_transactions")
             .update({
               topup_status: finalTopupStatus,
-              provider_ref_id: refId,
-              provider_message: topupRes?.data?.message || 'Memproses transaksi ke provider',
+              provider_ref_id: topupRes?.data?.trxid || refId,
+              provider_message: providerMsg,
               provider_sn: topupRes?.data?.sn || null
             })
             .eq("id", order_id);
@@ -162,6 +233,7 @@ export async function POST(request: Request) {
           await supabaseServer
             .from("topup_transactions")
             .update({
+              topup_status: "failed",
               provider_message: "Error menghubungi provider"
             })
             .eq("id", order_id);

@@ -43,11 +43,16 @@ export async function POST(request: Request) {
        console.log('[DEV] Topup Provider Webhook Received:', body);
     }
 
-    // Provider body schema:
-    // { trxid: '123', status: 'success'|'error', data: 'Voucher code/SN', service: 'ML 11', note: 'Success msg' }
-    const { trxid, status, data: sn, note } = body;
+    // VIP Reseller webhook body schema (docs):
+    // { "data": { "trxid": "VP123", "data": "136216325", "zone": "2685", "service": "ML 11", "status": "success"|"error", "note": "", "price": 195695 } }
+    // Note: inner "data" field is the user ID tujuan, NOT a serial number/voucher code
+    const webhookData = body.data || body; // Support both nested and flat format for safety
+    const { trxid, status, note, service } = webhookData;
+    // inner "data" is user ID, not SN — keep for logging only
+    const providerUserId = webhookData.data; 
 
     if (!trxid) {
+       console.warn('[WEBHOOK TOPUP2] Missing trxid in webhook body:', JSON.stringify(body).substring(0, 500));
        return NextResponse.json({ success: false, message: 'Missing trxid' }, { status: 400 });
     }
 
@@ -57,15 +62,51 @@ export async function POST(request: Request) {
     );
 
     // Get the transaction by provider_ref_id
-    const { data: trx, error: trxError } = await supabase
+    let trx = null;
+    let trxError = null;
+    
+    // Primary lookup: match by provider_ref_id
+    const { data: trxPrimary, error: errPrimary } = await supabase
         .from('topup_transactions')
         .select('*')
         .eq('provider_ref_id', trxid)
-        .single();
+        .maybeSingle();
+    
+    if (trxPrimary) {
+       trx = trxPrimary;
+    } else {
+       // Fallback: if trxid starts with VP (VIPayment format), search recent processing transactions
+       // This handles edge cases where provider_ref_id was saved as local refId (RTP-xxx) due to network issues
+       console.log(`[WEBHOOK TOPUP2] Primary lookup failed for ${trxid}, trying fallback...`);
+       const { data: trxFallback } = await supabase
+           .from('topup_transactions')
+           .select('*')
+           .eq('topup_status', 'processing')
+           .order('created_at', { ascending: false })
+           .limit(20);
+       
+       // Try to match by any available criteria
+       if (trxFallback && trxFallback.length > 0) {
+         // Look for transaction where provider_ref_id contains the trxid or vice versa
+         trx = trxFallback.find(t => t.provider_ref_id === trxid) || null;
+       }
+       
+       if (!trx) {
+         trxError = errPrimary;
+       }
+    }
 
     if (trxError || !trx) {
-       console.log(`[WEBHOOK TOPUP2] Transaction with provider_ref_id ${trxid} not found.`);
+       console.log(`[WEBHOOK TOPUP2] Transaction with provider_ref_id ${trxid} not found (tried primary + fallback).`);
        return NextResponse.json({ success: false, message: 'Transaction not found' }, { status: 404 });
+    }
+    
+    // If we found a match, update provider_ref_id to the correct trxid for future lookups
+    if (trx.provider_ref_id !== trxid) {
+      await supabase
+        .from('topup_transactions')
+        .update({ provider_ref_id: trxid })
+        .eq('id', trx.id);
     }
 
     // Map provider status to our DB status
@@ -81,7 +122,7 @@ export async function POST(request: Request) {
             trx.item_name || "Produk Game",
             trx.username,
             trx.target_id,
-            sn
+            service || null
           );
           sendEmail({
             to: trx.email.trim(),
@@ -96,9 +137,6 @@ export async function POST(request: Request) {
     }
 
     const updateData: any = { topup_status: dbStatus };
-    if (sn) {
-        updateData.provider_sn = sn;
-    }
     if (note) {
         updateData.provider_message = note;
     }

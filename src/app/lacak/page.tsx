@@ -288,9 +288,11 @@ export default function LacakPesananPage() {
                 <span className="text-[10px] text-white/50 font-black uppercase tracking-wider block">Status</span>
                 <span className={`text-xs font-black block uppercase tracking-wider ${
                   searchedOrder.status === "success" ? "text-emerald-400" :
+                  searchedOrder.status === "failed" ? "text-red-500" :
                   searchedOrder.status === "processing" ? "text-cyan-400" : "text-amber-400"
                 }`}>
                   {searchedOrder.status === "success" && "Berhasil"}
+                  {searchedOrder.status === "failed" && "Transaksi Gagal"}
                   {searchedOrder.status === "processing" && "Diproses"}
                   {searchedOrder.status === "pending" && "Menunggu Pembayaran"}
                 </span>
