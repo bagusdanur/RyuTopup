@@ -418,7 +418,8 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
         targetId = `${accountData.uid}(${accountData.server})`;
       } else {
         targetId = Object.values(accountData)[0]?.trim();
-      }      
+      }
+      
       try {
         const response = await fetch("/api/check-nickname", {
           method: "POST",
@@ -456,7 +457,7 @@ export default function TopupFormClient({ gameId, data }: { gameId: string; data
     const cleanWa = waNumber.trim().replace(/\D/g, "");
 
     let formattedTargetId = "";
-    if (gameId === "mobile-legends" || gameId === "magic-chess-gogo") {
+    if (gameId.startsWith("mobile-legends") || gameId === "magic-chess-gogo") {
       formattedTargetId = `${accountData.userId.trim()} (${accountData.zoneId.trim()})`;
     } else if (gameId === "genshin-impact" || gameId === "honkai-star-rail") {
       formattedTargetId = `${accountData.uid.trim()} (${accountData.server.trim()})`;

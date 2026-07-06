@@ -13,5 +13,14 @@ export default async function GamePage() {
     console.error("Error fetching games:", error);
   }
 
-  return <GameClient initialGames={games || []} />;
+  // Sort games: Mobile Legends first, then alphabetically
+  const sortedGames = (games || []).sort((a, b) => {
+    const aIsML = a.slug.startsWith("mobile-legends");
+    const bIsML = b.slug.startsWith("mobile-legends");
+    if (aIsML && !bIsML) return -1;
+    if (!aIsML && bIsML) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return <GameClient initialGames={sortedGames} />;
 }

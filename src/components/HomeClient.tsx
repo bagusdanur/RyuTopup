@@ -166,29 +166,58 @@ export default function HomeClient({ initialGames, initialFlashSales, initialTop
           {/* Game Grid */}
           {filteredGames.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-              {filteredGames.map((game) => (
-                <Link
-                  key={game.slug}
-                  href={`/${game.slug}`}
-                  className="bg-black border-2 border-white overflow-hidden flex flex-col hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-neo transition-all duration-300 group rounded-none"
-                >
-                  <div className="w-full aspect-[3/4] relative overflow-hidden bg-black border-b-2 border-white">
-                    <img
-                      src={game.cover || game.logo}
-                      alt={game.name}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="p-3.5 flex flex-col justify-between flex-grow bg-black">
-                    <div className="font-black text-[13px] text-white leading-tight truncate w-full group-hover:underline transition-colors uppercase">
-                      {game.name}
+              {filteredGames.map((game) => {
+                // Deteksi server via slug
+                type BadgeInfo = { shortLabel: string; flagUrl: string; bgColor: string } | null;
+                let badge: BadgeInfo = null;
+                if (game.slug === "mobile-legends-indonesia") {
+                  badge = { shortLabel: "ID", flagUrl: "https://flagcdn.com/w40/id.png", bgColor: "bg-red-600" };
+                } else if (game.slug === "mobile-legends-malaysia") {
+                  badge = { shortLabel: "MY", flagUrl: "https://flagcdn.com/w40/my.png", bgColor: "bg-blue-700" };
+                }
+
+                // Nama bersih tanpa suffix server
+                const displayName = badge
+                  ? game.name.replace(/\s*\((indonesia|malaysia|global)\)/gi, "").trim()
+                  : game.name;
+
+                return (
+                  <Link
+                    key={game.slug}
+                    href={`/${game.slug}`}
+                    className="bg-black border-2 border-white overflow-hidden flex flex-col hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-neo transition-all duration-300 group rounded-none"
+                  >
+                    <div className="w-full aspect-[3/4] relative overflow-hidden bg-black border-b-2 border-white">
+                      <img
+                        src={game.cover || game.logo}
+                        alt={game.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {/* Badge: pojok kanan atas — bendera + kode singkat */}
+                      {badge && (
+                        <div className={`absolute top-0 right-0 ${badge.bgColor} flex items-center gap-1 px-1.5 py-1 border-b-2 border-l-2 border-white`}>
+                          <img
+                            src={badge.flagUrl}
+                            alt={badge.shortLabel}
+                            className="h-3.5 w-auto object-cover"
+                          />
+                          <span className="text-[9px] font-black uppercase tracking-wider leading-none text-white">
+                            {badge.shortLabel}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-[11px] text-white/60 mt-1.5 truncate w-full font-bold">
-                      {game.developer || "Developer"}
+                    <div className="p-3.5 flex flex-col justify-between flex-grow bg-black">
+                      <div className="font-black text-[13px] text-white leading-tight truncate w-full group-hover:underline transition-colors uppercase">
+                        {displayName}
+                      </div>
+                      <div className="text-[11px] text-white/60 mt-1.5 truncate w-full font-bold">
+                        {game.developer || "Developer"}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12 bg-black border-2 border-dashed border-white rounded-none text-white/70 font-bold">

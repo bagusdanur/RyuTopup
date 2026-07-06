@@ -40,6 +40,15 @@ export default async function Home() {
     console.error("Error fetching top spenders:", tsError);
   }
 
+  // Sort games: Mobile Legends first, then alphabetically
+  const sortedGames = (games || []).sort((a, b) => {
+    const aIsML = a.slug.startsWith("mobile-legends");
+    const bIsML = b.slug.startsWith("mobile-legends");
+    if (aIsML && !bIsML) return -1;
+    if (!aIsML && bIsML) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
   // Pass to client component to handle search state and UI
-  return <HomeClient initialGames={games || []} initialFlashSales={flashSales || []} initialTopSpenders={topSpenders || []} />;
+  return <HomeClient initialGames={sortedGames} initialFlashSales={flashSales || []} initialTopSpenders={topSpenders || []} />;
 }
